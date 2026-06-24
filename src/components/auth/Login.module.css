@@ -1,0 +1,82 @@
+.screenContainer {
+    background-color: #0b0b12;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    /* color: #ffffff; */
+}
+
+/* Hộp đăng nhập thiết kế hiệu ứng viền neon phát sáng */
+.loginBox {
+    background: linear-gradient(145deg, #131326, #1b1b3a);
+    border: 2px solid #00f3ff;
+    border-radius: 12px;
+    padding: 40px 30px;
+    width: 380px;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.05);
+}
+
+.title {
+    color: #00f3ff;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 0;
+    margin-bottom: 30px;
+    font-size: 24px;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+}
+
+.inputGroup {
+    margin-bottom: 25px;
+}
+
+.inputGroup label {
+    display: block;
+    margin-bottom: 8px;
+    color: #8a8ab0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.inputGroup input {
+    width: 100%;
+    padding: 12px;
+    background-color: #0d0d1a;
+    border: 1px solid #333366;
+    border-radius: 6px;
+    color: #fff;
+    box-sizing: border-box;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: #00f3ff;
+    box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+}
+
+.actionButton {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(90deg, #00f3ff, #9d00ff);
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(157, 0, 255, 0.3);
+    transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 243, 255, 0.5);
+}

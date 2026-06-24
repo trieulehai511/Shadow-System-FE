@@ -1,0 +1,92 @@
+.layoutContainer{
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #0b0b12;
+    color: #ffffff;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.header{
+    height: 60px;
+    background-color: #131326;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 10px rgba(0, 243, 255, 0.1);
+    z-index: 10;
+}   
+.logoArea {
+    color: #00f3ff;
+    font-weight: bold;
+    font-size: 18px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+}
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logoutBtn {
+    background: transparent;
+    border: 1px solid #ff2e63;
+    color: #ff2e63;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+
+.logoutBtn:hover {
+    background: #ff2e63;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 46, 99, 0.5);
+}
+
+.bodyContainer {
+    display: flex;
+    flex: 1;
+    
+}
+
+.sidebar{
+    width: 240px;
+    background: #131326;
+    border-right: 2px solid #333366;
+    padding: 20px 10px;
+    display: flex;
+    flex-direction: column;
+    gap:10px
+}
+
+.menuItem {
+    padding: 12px 15px;
+    color: #8a8ab0;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.menuItem:hover {
+    color: #00f3ff;
+    background: rgba(0, 243, 255, 0.05);
+    border-left: 3px solid #00f3ff;
+    padding-left: 12px;
+}
+
+/* --- VÙNG HIỂN THỊ NỘI DUNG CHÍNH --- */
+.mainContent {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
