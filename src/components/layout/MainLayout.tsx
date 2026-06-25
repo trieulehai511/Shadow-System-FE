@@ -35,18 +35,18 @@ export default function MainLayout() {
         <div className={styles.layoutContainer}>
             {/* Top Header thanh điều hướng trên cùng */}
             <header className={styles.header}>
-                <div className={styles.logoArea}>⚡ SHADOW SYSTEM</div>
+                <div className={styles.logoArea}>AURELIAN SYSTEM</div>
                 <div className={styles.userInfo}>
-                    <span>👤 THỢ SĂN: {hunterName}</span>
-                    <button className={styles.logoutBtn} onClick={handleLogout}></button>
+                    <span>HUNTER: {hunterName}</span>
+                    <button className={styles.logoutBtn} onClick={handleLogout}>EXIT</button>
                 </div>
             </header>
 
             <div className={styles.bodyContainer}>
                 {/* Sidebar bên trái */}
                 <aside className={styles.sidebar}>
-                    <Link to="/daily-quest" className={styles.menuItem}>📜 Nhiệm Vụ Hằng Ngày</Link>
-                    <Link to="/inventory" className={styles.menuItem}>🎒 Kho Đồ (Tính năng mới)</Link>
+                    <Link to="/daily-quest" className={styles.menuItem}>Daily Quest</Link>
+                    {/* <Link to="/inventory" className={styles.menuItem}>Inventory</Link> */}
                 </aside>
 
                 {/* Vùng nội dung động bên phải */}

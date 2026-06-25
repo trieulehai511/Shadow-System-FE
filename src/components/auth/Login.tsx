@@ -41,29 +41,62 @@ export default function Login() {
     return (
         <div className={styles.screenContainer}>
             <div className={styles.loginBox}>
-                <h2 className={styles.title}>LOGIN</h2>
-
-                <div className={styles.inputGroup}>
-                    <label style={{ marginBottom: '20px' }}>USERNAME</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(event) => setUsername(event.target.value)}
-                    />
+                <div className={styles.brandBlock}>
+                    <h1 className={styles.title}>AURELIAN</h1>
+                    <p className={styles.subtitle}>LOGIN TO THE SYSTEM</p>
                 </div>
 
                 <div className={styles.inputGroup}>
-                    <label style={{ marginBottom: '20px' }}>PASSWORD</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                    />
+                    <label>HUNTER ID</label>
+                    <div className={styles.inputShell}>
+                        <span className={styles.inputIcon}>◎</span>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(event) => setUsername(event.target.value)}
+                            aria-label="Hunter ID"
+                        />
+                    </div>
+                </div>
+
+                <div className={styles.inputGroup}>
+                    <label>PASSWORD</label>
+                    <div className={styles.inputShell}>
+                        <span className={styles.inputIcon}>▣</span>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            aria-label="Password"
+                        />
+                    </div>
                 </div>
 
                 <button className={styles.actionButton} onClick={handleLogin}>
-                    SUBMIT
+                    AWAKEN <span aria-hidden="true">›</span>
                 </button>
+
+                <button className={styles.forgotButton} type="button">
+                    FORGOT ACCESS CODE?
+                </button>
+
+                <div className={styles.divider}>
+                    <span />
+                    <small>OR</small>
+                    <span />
+                </div>
+
+                <button className={styles.registerButton} type="button">
+                    New hunter registration <span aria-hidden="true">↯</span>
+                </button>
+
+                <span className={styles.cornerMark} aria-hidden="true">△</span>
+            </div>
+
+            <div className={styles.statusLine}>
+                <span>ENCRYPTED CONNECTION</span>
+                <i />
+                <span>SECURE MONOLITH ACCESS</span>
             </div>
         </div>
     );

@@ -1,166 +1,195 @@
-/* --- BOX CHÍNH HỆ THỐNG --- */
 .systemBox {
-    background: linear-gradient(145deg, #111122, #161632);
-    border: 2px solid #00f3ff;
-    border-radius: 16px;
-    padding: 35px;
     width: 100%;
-    max-width: 850px; /* Tăng từ 520px lên 850px cho rộng rãi */
-    box-shadow: 0 0 35px rgba(0, 243, 255, 0.15), 
-                inset 0 0 20px rgba(0, 243, 255, 0.05);
+    max-width: 900px;
     box-sizing: border-box;
+    padding: 34px;
+    background:
+        linear-gradient(90deg, rgba(229, 226, 225, 0.018), transparent 30% 70%, rgba(229, 226, 225, 0.018)),
+        rgba(28, 27, 27, 0.8);
+    border: 1px solid var(--color-outline-variant);
+    backdrop-filter: blur(20px);
+    box-shadow:
+        0 28px 70px rgba(0, 0, 0, 0.46),
+        inset 0 1px 0 rgba(242, 202, 80, 0.08);
 }
 
-/* --- KHU VỰC THÔNG TIN CHUNG --- */
 .statusContainer {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 30px;
+    gap: 18px;
+    margin-bottom: 28px;
 }
 
 .statusCard {
-    background-color: #090914;
-    border: 1px solid #222244;
-    border-radius: 10px;
-    padding: 15px 20px;
+    padding: 18px 20px;
+    background: rgba(14, 14, 14, 0.72);
+    border: 1px solid var(--color-outline-variant);
 }
 
 .statusCard p {
-    margin: 6px 0;
-    font-size: 14px;
-    color: #8a8ab0;
+    margin: 0 0 10px;
+    color: var(--color-outline);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
 }
 
 .statusCard strong {
-    color: #ffffff;
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
     font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: var(--tracking-stat);
+}
+
+.statusComplete {
+    color: var(--color-primary-fixed) !important;
+}
+
+.statusPending {
+    color: var(--color-secondary) !important;
 }
 
 .warningText {
     grid-column: span 2;
-    color: #ff2e63;
-    font-size: 14px;
+    padding: 13px 16px;
+    color: var(--color-error);
+    background: rgba(147, 0, 10, 0.18);
+    border: 1px solid var(--color-error-container);
     text-align: center;
-    font-weight: bold;
-    background: rgba(255, 46, 99, 0.1);
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 46, 99, 0.3);
-    margin-top: 5px;
-    letter-spacing: 0.5px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: var(--tracking-label);
 }
 
-/* --- DANH SÁCH NHIỆM VỤ (LIST) --- */
 .exerciseList {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px; /* Khoảng cách giữa các nhiệm vụ thoáng hơn */
+    gap: 14px;
 }
 
-/* --- TỪNG DÒNG NHIỆM VỤ --- */
 .exerciseItem {
-    background: #13132a;
-    padding: 20px 25px;
-    border-radius: 10px;
-    border-left: 5px solid #9d00ff;
-    border-right: 1px solid #222244;
-    border-top: 1px solid #222244;
-    border-bottom: 1px solid #222244;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 22px;
+    padding: 20px 22px;
+    background: rgba(28, 27, 27, 0.8);
+    border: 1px solid var(--color-outline-variant);
+    border-left: 4px solid rgba(212, 175, 55, 0.72);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    transition: border-color 0.28s linear, background 0.28s linear, transform 0.28s linear;
 }
 
 .exerciseItem:hover {
-    transform: translateX(5px);
-    background: #181835;
-    box-shadow: 0 6px 15px rgba(157, 0, 255, 0.15);
+    transform: translateX(4px);
+    background: rgba(32, 31, 31, 0.92);
+    border-color: var(--color-primary-container);
 }
 
-/* Khi bài tập hoàn thành -> đổi theme sang xanh neon cực nét */
 .exerciseItemCompleted {
-    background: linear-gradient(90deg, #071c18, #0d2621);
-    border-left: 5px solid #00ff88;
-    border-right: 1px solid rgba(0, 255, 136, 0.2);
-    border-top: 1px solid rgba(0, 255, 136, 0.2);
-    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.05);
+    border-left-color: var(--color-primary-container);
+    background: rgba(32, 31, 31, 0.88);
 }
 
 .exerciseItemCompleted:hover {
     transform: none;
-    background: linear-gradient(90deg, #071c18, #0d2621);
+    background: rgba(32, 31, 31, 0.92);
 }
 
-/* --- THÔNG TIN CHI TIẾT BÊN TRONG --- */
 .exerciseInfo h4 {
-    margin: 0 0 8px 0;
-    color: #ffffff;
-    font-size: 18px;
-    letter-spacing: 0.5px;
+    margin: 0 0 9px;
+    color: var(--color-on-surface);
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
+    letter-spacing: 0.05em;
 }
 
 .exerciseInfo p {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    color: #a4a4ca;
+    margin: 0 0 12px;
+    color: var(--color-on-surface-variant);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
 }
 
 .statTag {
-    color: #00f3ff;
-    font-size: 12px;
-    font-weight: bold;
-    background-color: rgba(0, 243, 255, 0.1);
-    padding: 4px 10px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 243, 255, 0.2);
     display: inline-block;
+    padding: 5px 10px;
+    color: var(--color-primary);
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid var(--color-primary-container);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: var(--tracking-label);
 }
 
-/* --- NÚT BẤM HOÀN THÀNH --- */
 .completeBtn {
-    background: linear-gradient(90deg, #00f3ff, #00a8ff);
-    border: none;
-    color: #000;
-    font-weight: 800;
-    padding: 12px 24px;
-    border-radius: 6px;
+    min-width: 196px;
+    min-height: 42px;
+    border: 1px solid var(--color-primary-container);
+    background: transparent;
+    color: var(--color-primary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+    transition: background 0.28s linear, box-shadow 0.28s linear, transform 0.28s linear;
 }
 
 .completeBtn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px #00f3ff;
-    color: #ffffff;
+    background: rgba(212, 175, 55, 0.08);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+    transform: translateY(-1px);
 }
 
 .completedText {
-    color: #00ff88;
-    font-weight: bold;
-    font-size: 14px;
-    letter-spacing: 1.5px;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    color: var(--color-primary-fixed);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: var(--tracking-label);
 }
 
-/* Loading trạng thái */
 .centerLoading {
-    color: #00f3ff;
+    margin-top: 50px;
+    color: var(--color-primary);
     text-align: center;
     font-size: 18px;
     letter-spacing: 1px;
-    margin-top: 50px;
+}
+
+@media (max-width: 760px) {
+    .systemBox {
+        padding: 22px;
+    }
+
+    .statusContainer {
+        grid-template-columns: 1fr;
+    }
+
+    .warningText {
+        grid-column: auto;
+    }
+
+    .exerciseItem {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .completeBtn {
+        width: 100%;
+    }
 }

@@ -85,7 +85,7 @@ export default function DailyQuest() {
                 </div>
                 <div className={styles.statusCard}>
                     <p>🏆 Trạng thái tiến độ</p>
-                    <strong style={{ color: questData.completed ? '#00ff88' : '#00f3ff' }}>
+                    <strong className={questData.completed ? styles.statusComplete : styles.statusPending}>
                         {questData.completed ? "🌟 HOÀN THÀNH TẤT CẢ" : "⏳ ĐANG TIẾN HÀNH"}
                     </strong>
                 </div>
