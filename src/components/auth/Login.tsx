@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 
@@ -16,9 +16,21 @@ export default function Login() {
 
     const navigate = useNavigate();
 
-    const handleLogin = async (): Promise<void> => {
+    // Dynamically inject Material Symbols stylesheet to render the correct icons
+    useEffect(() => {
+        const link = document.createElement('link');
+        link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+        return () => {
+            document.head.removeChild(link);
+        };
+    }, []);
+
+    const handleLogin = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
         try {
-            const response = await fetch('http://localhost:8888/shadow-system/auth/login', {
+            const response = await fetch('https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userName: username, password: password })
@@ -40,64 +52,85 @@ export default function Login() {
 
     return (
         <div className={styles.screenContainer}>
-            <div className={styles.loginBox}>
+            {/* Ambient Gate Background */}
+            <div className={styles.gateBgWrapper} aria-hidden="true">
+                <div className={styles.gateBg}></div>
+                <div className={styles.gateRays}></div>
+            </div>
+
+            <main className={styles.loginWrapper}>
+                {/* Header Section */}
                 <div className={styles.brandBlock}>
-                    <h1 className={styles.title}>AURELIAN</h1>
-                    <p className={styles.subtitle}>LOGIN TO THE SYSTEM</p>
+                    <span className={`material-symbols-outlined ${styles.brandIcon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                        sports_mma
+                    </span>
+                    <h1 className={styles.title}>Awaken Your Potential</h1>
+                    <p className={styles.subtitle}>Initiate System Link</p>
                 </div>
 
-                <div className={styles.inputGroup}>
-                    <label>HUNTER ID</label>
-                    <div className={styles.inputShell}>
-                        <span className={styles.inputIcon}>◎</span>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(event) => setUsername(event.target.value)}
-                            aria-label="Hunter ID"
-                        />
-                    </div>
+                {/* Login Card */}
+                <div className={`${styles.loginBox} group`}>
+                    {/* Subtle accent border */}
+                    <div className={styles.accentBorder}></div>
+
+                    <form className={styles.form} onSubmit={handleLogin}>
+                        {/* Email Input */}
+                        <div className={styles.inputGroup}>
+                            <label htmlFor="email">Hunter ID / Email</label>
+                            <div className={styles.inputShell}>
+                                <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
+                                    badge
+                                </span>
+                                <input
+                                    id="email"
+                                    type="text"
+                                    placeholder="Enter your registered ID"
+                                    value={username}
+                                    onChange={(event) => setUsername(event.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password Input */}
+                        <div className={styles.inputGroup}>
+                            <div className={styles.labelRow}>
+                                <label htmlFor="password">Passcode</label>
+                                <button className={styles.recoverLink} type="button">Recover?</button>
+                            </div>
+                            <div className={styles.inputShell}>
+                                <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
+                                    key
+                                </span>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(event) => setPassword(event.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className={styles.actionWrapper}>
+                            <button className={styles.actionButton} type="submit">
+                                <span className="material-symbols-outlined">login</span>
+                                Login
+                            </button>
+
+                            <div className={styles.divider}>
+                                <span>OR</span>
+                            </div>
+
+                            <button className={styles.registerButton} type="button">
+                                <span className="material-symbols-outlined">person_add</span>
+                                Sign Up as Hunter
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <div className={styles.inputGroup}>
-                    <label>PASSWORD</label>
-                    <div className={styles.inputShell}>
-                        <span className={styles.inputIcon}>▣</span>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            aria-label="Password"
-                        />
-                    </div>
-                </div>
-
-                <button className={styles.actionButton} onClick={handleLogin}>
-                    AWAKEN <span aria-hidden="true">›</span>
-                </button>
-
-                <button className={styles.forgotButton} type="button">
-                    FORGOT ACCESS CODE?
-                </button>
-
-                <div className={styles.divider}>
-                    <span />
-                    <small>OR</small>
-                    <span />
-                </div>
-
-                <button className={styles.registerButton} type="button">
-                    New hunter registration <span aria-hidden="true">↯</span>
-                </button>
-
-                <span className={styles.cornerMark} aria-hidden="true">△</span>
-            </div>
-
-            <div className={styles.statusLine}>
-                <span>ENCRYPTED CONNECTION</span>
-                <i />
-                <span>SECURE MONOLITH ACCESS</span>
-            </div>
+            </main>
         </div>
     );
 }
+
