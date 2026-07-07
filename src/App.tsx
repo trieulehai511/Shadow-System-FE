@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/auth/Login';
 import DailyQuest from './components/quests/DailyQuest';
+import QuestHistory from './components/quests/QuestHistory';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -22,6 +23,7 @@ export default function App() {
                     {/* Vào đường dẫn gốc tự động đá qua trang nhiệm vụ */}
                     <Route path="/" element={<Navigate to="/daily-quest" replace />} />
                     <Route path="/daily-quest" element={<DailyQuest />} />
+                    <Route path="/history" element={<QuestHistory />} />
                 </Route>
 
                 {/* Tự động chuyển hướng nếu gõ sai URL */}

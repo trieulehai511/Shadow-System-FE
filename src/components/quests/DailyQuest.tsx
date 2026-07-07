@@ -19,6 +19,21 @@ export default function DailyQuest() {
     const [penaltyTime, setPenaltyTime] = useState<string>("11:42:09");
     const navigate = useNavigate();
 
+    type QuestLogItem = {
+        id: string;
+        logDate: string;
+        message: string;
+        status: string;
+    };
+
+    type QuestLogApiResponse = {
+        result?: {
+            content: QuestLogItem[];
+        };
+    };
+
+    const [questLogs, setQuestLogs] = useState<QuestLogItem[]>([]);
+
     useEffect(() => {
         const fetchDailyQuest = async (): Promise<void> => {
             try {
@@ -31,6 +46,7 @@ export default function DailyQuest() {
                 const decoded = jwtDecode<TokenPayload>(token);
                 const usernameParam = decoded.sub;
 
+                // 1. Fetch quest items
                 const response = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/daily-quest/hunter/${usernameParam}`, {
                     method: 'GET',
                     headers: {
@@ -43,6 +59,24 @@ export default function DailyQuest() {
                 if (data.result) {
                     setQuestData(data.result);
                 }
+
+                // 2. Fetch Quest Logs from the new API
+                try {
+                    const logsResponse = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const logsData: QuestLogApiResponse = await logsResponse.json();
+                    if (logsData.result?.content) {
+                        setQuestLogs(logsData.result.content);
+                    }
+                } catch (logsErr) {
+                    console.error("Lỗi lấy nhật ký Quest Logs:", logsErr);
+                }
+
             } catch (error) {
                 console.error("Lỗi đồng bộ dữ liệu hệ thống:", error);
             } finally {
@@ -84,6 +118,20 @@ export default function DailyQuest() {
 
             if (data.result) {
                 setQuestData(data.result);
+                // Refresh Logs after completion
+                const decoded = jwtDecode<TokenPayload>(token || '');
+                const usernameParam = decoded.sub;
+                const logsResponse = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const logsData: QuestLogApiResponse = await logsResponse.json();
+                if (logsData.result?.content) {
+                    setQuestLogs(logsData.result.content);
+                }
             }
         } catch (error) {
             console.error("Lỗi ghi nhận tiến độ:", error);
@@ -237,18 +285,31 @@ export default function DailyQuest() {
                             System Log
                         </h3>
                         <ul className={styles.logList}>
-                            <li className={styles.logItemDim}>
-                                <span className={styles.logTime}>[08:00]</span>
-                                <span>Daily Quest issued.</span>
-                            </li>
-                            <li className={styles.logItemNormal}>
-                                <span className={styles.logTime}>[09:15]</span>
-                                <span>Push-ups completed. Strength +1.</span>
-                            </li>
-                            <li className={styles.logItemActive}>
-                                <span className={styles.logTime}>[09:20]</span>
-                                <span className={styles.pulseText}>Tracking Sit-ups...</span>
-                            </li>
+                            {questLogs.length > 0 ? (
+                                questLogs.map((log) => {
+                                    // Extract HH:MM or format date elegantly
+                                    const timeStr = log.logDate ? new Date(log.logDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                                    const isActive = log.status === 'ACTIVE' || log.status === 'IN_PROGRESS';
+                                    const isDim = log.status === 'INFO';
+                                    
+                                    return (
+                                        <li 
+                                            key={log.id} 
+                                            className={
+                                                isActive ? styles.logItemActive : (isDim ? styles.logItemDim : styles.logItemNormal)
+                                            }
+                                        >
+                                            <span className={styles.logTime}>[{timeStr || 'LOG'}]</span>
+                                            <span className={isActive ? styles.pulseText : ''}>{log.message}</span>
+                                        </li>
+                                    );
+                                })
+                            ) : (
+                                <li className={styles.logItemDim}>
+                                    <span className={styles.logTime}>[SYSTEM]</span>
+                                    <span>No quest logs recorded yet.</span>
+                                </li>
+                            )}
                         </ul>
                     </section>
                 </div>

@@ -113,10 +113,15 @@ export default function MainLayout() {
                             </a>
                         </li>
                         <li>
-                            <a href="#" className={styles.navItem}>
-                                <span className="material-symbols-outlined">history</span>
+                            <Link 
+                                to="/history" 
+                                className={`${styles.navItem} ${location.pathname === '/history' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/history' ? styles.fillIcon : ''}`}>
+                                    history
+                                </span>
                                 <span>History</span>
-                            </a>
+                            </Link>
                         </li>
                     </ul>
 
@@ -178,6 +183,10 @@ export default function MainLayout() {
                     <span className="material-symbols-outlined">workspace_premium</span>
                     <span>Rank</span>
                 </a>
+                <Link to="/history" className={`${styles.mobileTab} ${location.pathname === '/history' ? styles.activeTab : ''}`}>
+                    <span className="material-symbols-outlined">list_alt</span>
+                    <span>Logs</span>
+                </Link>
                 <a href="#" className={styles.mobileTab} onClick={handleLogout}>
                     <span className="material-symbols-outlined">logout</span>
                     <span>Exit</span>
