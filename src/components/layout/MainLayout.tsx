@@ -101,10 +101,15 @@ export default function MainLayout() {
                             </a>
                         </li>
                         <li>
-                            <a href="#" className={styles.navItem}>
-                                <span className="material-symbols-outlined">person</span>
+                            <Link 
+                                to="/profile" 
+                                className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/profile' ? styles.fillIcon : ''}`}>
+                                    person
+                                </span>
                                 <span>Profile</span>
-                            </a>
+                            </Link>
                         </li>
                         <li>
                             <a href="#" className={styles.navItem}>
@@ -175,10 +180,10 @@ export default function MainLayout() {
                     <span className="material-symbols-outlined">fitness_center</span>
                     <span>Quests</span>
                 </a>
-                <a href="#" className={styles.mobileTab} onClick={(e) => e.preventDefault()}>
+                <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">bar_chart</span>
                     <span>Stats</span>
-                </a>
+                </Link>
                 <a href="#" className={styles.mobileTab} onClick={(e) => e.preventDefault()}>
                     <span className="material-symbols-outlined">workspace_premium</span>
                     <span>Rank</span>

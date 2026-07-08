@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/auth/Login';
 import DailyQuest from './components/quests/DailyQuest';
 import QuestHistory from './components/quests/QuestHistory';
+import Profile from './components/quests/Profile';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -24,6 +25,7 @@ export default function App() {
                     <Route path="/" element={<Navigate to="/daily-quest" replace />} />
                     <Route path="/daily-quest" element={<DailyQuest />} />
                     <Route path="/history" element={<QuestHistory />} />
+                    <Route path="/profile" element={<Profile />} />
                 </Route>
 
                 {/* Tự động chuyển hướng nếu gõ sai URL */}
