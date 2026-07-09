@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { apiRequest } from '../../services/api';
 import styles from './DailyQuest.module.css';
 import type { DailyQuestResponse } from '../../models/QuestModel';
 
@@ -47,14 +48,7 @@ export default function DailyQuest() {
                 const usernameParam = decoded.sub;
 
                 // 1. Fetch quest items
-                const response = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/daily-quest/hunter/${usernameParam}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data: DailyQuestApiResponse = await response.json();
+                const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${usernameParam}`);
 
                 if (data.result) {
                     setQuestData(data.result);
@@ -62,14 +56,7 @@ export default function DailyQuest() {
 
                 // 2. Fetch Quest Logs from the new API
                 try {
-                    const logsResponse = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    const logsData: QuestLogApiResponse = await logsResponse.json();
+                    const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
                     if (logsData.result?.content) {
                         setQuestLogs(logsData.result.content);
                     }
@@ -107,28 +94,16 @@ export default function DailyQuest() {
     const handleCompleteItem = async (itemId: string): Promise<void> => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/daily-quest/item/${itemId}/complete`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/item/${itemId}/complete`, {
+                method: 'PATCH'
             });
-            const data: DailyQuestApiResponse = await response.json();
 
             if (data.result) {
                 setQuestData(data.result);
                 // Refresh Logs after completion
                 const decoded = jwtDecode<TokenPayload>(token || '');
                 const usernameParam = decoded.sub;
-                const logsResponse = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const logsData: QuestLogApiResponse = await logsResponse.json();
+                const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
                 if (logsData.result?.content) {
                     setQuestLogs(logsData.result.content);
                 }
@@ -138,7 +113,7 @@ export default function DailyQuest() {
         }
     };
 
-        const [showLevelUp, setShowLevelUp] = useState<boolean>(false);
+    const [showLevelUp, setShowLevelUp] = useState<boolean>(false);
 
     useEffect(() => {
         if (questData && questData.completed) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { apiRequest } from '../../services/api';
 import styles from './QuestHistory.module.css';
 
 type TokenPayload = {
@@ -45,14 +46,7 @@ export default function QuestHistory() {
                 const decoded = jwtDecode<TokenPayload>(token);
                 const usernameParam = decoded.sub;
 
-                const response = await fetch(`https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/quest-logs/hunter/${usernameParam}?page=0&size=20&sort=createdAt,desc`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data: QuestLogApiResponse = await response.json();
+                const data: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=20&sort=createdAt,desc`);
 
                 if (data.result?.content) {
                     setLogs(data.result.content);

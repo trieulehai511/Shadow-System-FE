@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiRequest } from '../../services/api';
 import styles from './Login.module.css';
 
 type LoginApiResponse = {
@@ -30,12 +31,10 @@ export default function Login() {
     const handleLogin = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         try {
-            const response = await fetch('https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system/auth/login', {
+            const data: LoginApiResponse = await apiRequest('/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userName: username, password: password })
             });
-            const data: LoginApiResponse = await response.json();
 
             if (data.code === 200 && data.result?.authenticated) {
                 localStorage.setItem('token', data.result.token);

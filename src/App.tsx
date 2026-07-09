@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/auth/Login';
-import DailyQuest from './components/quests/DailyQuest';
-import QuestHistory from './components/quests/QuestHistory';
-import Profile from './components/quests/Profile';
+import Login from './pages/Login/Login';
+import DailyQuest from './pages/DailyQuest/DailyQuest';
+import QuestHistory from './pages/QuestHistory/QuestHistory';
+import Profile from './pages/Profile/Profile';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 

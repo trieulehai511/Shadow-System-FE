@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { apiRequest } from '../../services/api';
 import styles from './MainLayout.module.css';
 
 type TokenPayload = {
@@ -12,7 +13,10 @@ export default function MainLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuVisible, setIsMobileMenuVisible] = useState<boolean>(true);
-    let hunterName = "Sung Jin-Woo";
+    
+    const [hunterName, setHunterName] = useState<string>("Sung Jin-Woo");
+    const [avatar, setAvatar] = useState<string>("");
+    const [rankTier, setRankTier] = useState<string>("E RANK");
 
     // Dynamically inject Material Symbols stylesheet
     useEffect(() => {
@@ -40,24 +44,39 @@ export default function MainLayout() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const token = localStorage.getItem('token');
-    if (token) {
-        try {
-            const decoded = jwtDecode<TokenPayload>(token);
-            if (decoded.userName) {
-                hunterName = decoded.userName.split(' ')
-                    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(' ');
+    useEffect(() => {
+        const fetchProfileData = async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const decoded = jwtDecode<TokenPayload>(token);
+                    const usernameParam = decoded.sub;
+                    
+                    const data = await apiRequest(`/hunter/${usernameParam}`);
+                    const profileData = data.result ? data.result : data;
+                    if (profileData) {
+                        setHunterName(profileData.fullName || decoded.userName || "Sung Jin-Woo");
+                        setAvatar(profileData.avatar || "");
+                        setRankTier(profileData.rankTier || "E RANK");
+                    }
+                } catch (e) {
+                    console.error("Lỗi giải mã token hoặc lấy profile tại Layout:", e);
+                }
             }
-        } catch (e) {
-            console.error("Lỗi giải mã token tại Layout:", e);
-        }
-    }
+        };
+        fetchProfileData();
+
+        // Listen for profile update event to refresh layout dynamically
+        window.addEventListener('profileUpdated', fetchProfileData);
+        return () => window.removeEventListener('profileUpdated', fetchProfileData);
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/login');
     };
+
+    const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuDEKLlUzRvvpISR-0lZQmXWsGgz22UXc-gHzCFcQtKfGVHo7IGdf3rvsPV3VG5nrVWtkOfLglpFzBu1Nf-ZsYOutA_vy8m2hVcZ33uhYgVLcXWyD0He0f3hKqVX1pT7DwiEOzTaEFWPx01LHY5M_Nzo6qvarZbEz5KOpggoekfDdEhJ9Zpx5MlGXwZOjA8gHpjdhbNSnJ-82ZtsJa7e7hIST_UKMXTfrMHEH_0FdgiCaLKPUFpvDsYNkbmZ8l43HezLZwDRYlV_PJw";
 
     return (
         <div className={styles.layoutContainer}>
@@ -74,11 +93,11 @@ export default function MainLayout() {
                             <img 
                                 className={styles.avatarImg} 
                                 alt="Hunter Avatar" 
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEKLlUzRvvpISR-0lZQmXWsGgz22UXc-gHzCFcQtKfGVHo7IGdf3rvsPV3VG5nrVWtkOfLglpFzBu1Nf-ZsYOutA_vy8m2hVcZ33uhYgVLcXWyD0He0f3hKqVX1pT7DwiEOzTaEFWPx01LHY5M_Nzo6qvarZbEz5KOpggoekfDdEhJ9Zpx5MlGXwZOjA8gHpjdhbNSnJ-82ZtsJa7e7hIST_UKMXTfrMHEH_0FdgiCaLKPUFpvDsYNkbmZ8l43HezLZwDRYlV_PJw"
+                                src={avatar || defaultAvatar}
                             />
                         </div>
                         <h2 className={styles.navHunterName}>{hunterName}</h2>
-                        <span className={styles.navHunterRank}>E-Rank Hunter</span>
+                        <span className={styles.navHunterRank}>{rankTier.replace('_', ' ')}</span>
                     </div>
 
                     {/* Nav Links */}
