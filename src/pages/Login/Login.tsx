@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
+import { SystemAlert } from '../../components/SystemAlert';
 import styles from './Login.module.css';
 
 type LoginApiResponse = {
@@ -14,6 +15,12 @@ type LoginApiResponse = {
 export default function Login() {
     const [username, setUsername] = useState<string>('trieule');
     const [password, setPassword] = useState<string>('123456');
+    const [alertConfig, setAlertConfig] = useState<{
+        message: string;
+        type: 'success' | 'error' | 'info' | 'warning';
+        title?: string;
+        onClose?: () => void;
+    } | null>(null);
 
     const navigate = useNavigate();
 
@@ -38,16 +45,31 @@ export default function Login() {
 
             if (data.code === 200 && data.result?.authenticated) {
                 localStorage.setItem('token', data.result.token);
-                alert("Hệ thống xác nhận bản thể!");
-                navigate('/daily-quest');
+                setAlertConfig({
+                    title: "HỆ THỐNG XÁC THỰC",
+                    message: "Hệ thống xác nhận bản thể thành công!",
+                    type: "success",
+                    onClose: () => {
+                        navigate('/daily-quest');
+                    }
+                });
             } else {
-                alert("Xác thực thất bại! Bản thể không khớp.");
+                setAlertConfig({
+                    title: "XÁC THỰC THẤT BẠI",
+                    message: "Bản thể không khớp! Vui lòng kiểm tra lại thông tin.",
+                    type: "error"
+                });
             }
         } catch (error) {
             console.error("Lỗi kết nối API:", error);
-            alert("Không thể kết nối đến Thần Ma Hệ Thống (Backend).");
+            setAlertConfig({
+                title: "LỖI HỆ THỐNG",
+                message: "Không thể kết nối đến Thần Ma Hệ Thống (Backend).",
+                type: "error"
+            });
         }
     };
+
 
     return (
         <div className={styles.screenContainer}>
@@ -129,6 +151,19 @@ export default function Login() {
                     </form>
                 </div>
             </main>
+
+            {alertConfig && (
+                <SystemAlert 
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    type={alertConfig.type}
+                    onClose={() => {
+                        const cb = alertConfig.onClose;
+                        setAlertConfig(null);
+                        if (cb) cb();
+                    }}
+                />
+            )}
         </div>
     );
 }

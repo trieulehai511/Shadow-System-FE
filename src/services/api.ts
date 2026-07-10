@@ -55,3 +55,15 @@ export async function apiRequest<T = any>(
 
     return response.json();
 }
+
+export const DEFAULT_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuDEKLlUzRvvpISR-0lZQmXWsGgz22UXc-gHzCFcQtKfGVHo7IGdf3rvsPV3VG5nrVWtkOfLglpFzBu1Nf-ZsYOutA_vy8m2hVcZ33uhYgVLcXWyD0He0f3hKqVX1pT7DwiEOzTaEFWPx01LHY5M_Nzo6qvarZbEz5KOpggoekfDdEhJ9Zpx5MlGXwZOjA8gHpjdhbNSnJ-82ZtsJa7e7hIST_UKMXTfrMHEH_0FdgiCaLKPUFpvDsYNkbmZ8l43HezLZwDRYlV_PJw";
+
+export function getAvatarUrl(avatarPath?: string): string {
+    if (!avatarPath) return DEFAULT_AVATAR;
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://') || avatarPath.startsWith('data:')) {
+        return avatarPath;
+    }
+    const path = avatarPath.startsWith('/') ? avatarPath : `/${avatarPath}`;
+    return `${API_BASE_URL}${path}`;
+}
+

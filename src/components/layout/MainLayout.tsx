@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { apiRequest } from '../../services/api';
+import { apiRequest, getAvatarUrl } from '../../services/api';
 import styles from './MainLayout.module.css';
 
 type TokenPayload = {
@@ -49,18 +49,15 @@ export default function MainLayout() {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const decoded = jwtDecode<TokenPayload>(token);
-                    const usernameParam = decoded.sub;
-                    
-                    const data = await apiRequest(`/hunter/${usernameParam}`);
+                    const data = await apiRequest('/auth/me');
                     const profileData = data.result ? data.result : data;
                     if (profileData) {
-                        setHunterName(profileData.fullName || decoded.userName || "Sung Jin-Woo");
+                        setHunterName(profileData.fullName || "Sung Jin-Woo");
                         setAvatar(profileData.avatar || "");
                         setRankTier(profileData.rankTier || "E RANK");
                     }
                 } catch (e) {
-                    console.error("Lỗi giải mã token hoặc lấy profile tại Layout:", e);
+                    console.error("Lỗi lấy profile từ /auth/me tại Layout:", e);
                 }
             }
         };
@@ -71,12 +68,23 @@ export default function MainLayout() {
         return () => window.removeEventListener('profileUpdated', fetchProfileData);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                await apiRequest('/auth/logout', {
+                    method: 'POST',
+                    body: JSON.stringify({ token }),
+                });
+            } catch (e) {
+                console.error("Lỗi gọi API logout:", e);
+            }
+        }
         localStorage.removeItem('token');
         navigate('/login');
     };
 
-    const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuDEKLlUzRvvpISR-0lZQmXWsGgz22UXc-gHzCFcQtKfGVHo7IGdf3rvsPV3VG5nrVWtkOfLglpFzBu1Nf-ZsYOutA_vy8m2hVcZ33uhYgVLcXWyD0He0f3hKqVX1pT7DwiEOzTaEFWPx01LHY5M_Nzo6qvarZbEz5KOpggoekfDdEhJ9Zpx5MlGXwZOjA8gHpjdhbNSnJ-82ZtsJa7e7hIST_UKMXTfrMHEH_0FdgiCaLKPUFpvDsYNkbmZ8l43HezLZwDRYlV_PJw";
+
 
     return (
         <div className={styles.layoutContainer}>
@@ -93,7 +101,7 @@ export default function MainLayout() {
                             <img 
                                 className={styles.avatarImg} 
                                 alt="Hunter Avatar" 
-                                src={avatar || defaultAvatar}
+                                src={getAvatarUrl(avatar)}
                             />
                         </div>
                         <h2 className={styles.navHunterName}>{hunterName}</h2>

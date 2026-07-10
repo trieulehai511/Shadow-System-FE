@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { apiRequest } from '../../services/api';
+import { apiRequest, getAvatarUrl } from '../../services/api';
+import { SystemAlert } from '../../components/SystemAlert';
 import styles from './Profile.module.css';
 
 type TokenPayload = {
@@ -39,6 +40,12 @@ export default function Profile() {
     
     const [saving, setSaving] = useState<boolean>(false);
     const [errorMsg, setErrorMsg] = useState<string>('');
+    const [alertConfig, setAlertConfig] = useState<{
+        message: string;
+        type: 'success' | 'error' | 'info' | 'warning';
+        title?: string;
+        onClose?: () => void;
+    } | null>(null);
     
     const navigate = useNavigate();
 
@@ -50,13 +57,10 @@ export default function Profile() {
                 return;
             }
 
-            const decoded = jwtDecode<TokenPayload>(token);
-            const usernameParam = decoded.sub;
-
-            const data = await apiRequest(`/hunter/${usernameParam}`);
+            const data = await apiRequest('/auth/me');
             const profileData = data.result ? data.result : data;
 
-            if (profileData && (profileData.userName || profileData.hunterCode)) {
+            if (profileData) {
                 setProfile(profileData);
                 setFullName(profileData.fullName || '');
                 setAge(profileData.age || 16);
@@ -106,7 +110,7 @@ export default function Profile() {
             formData.append('age', age.toString());
             
             if (avatarFile) {
-                formData.append('avatar', avatarFile);
+                formData.append('avatarFile', avatarFile);
             }
 
             const data = await apiRequest('/hunter/profile', {
@@ -127,7 +131,11 @@ export default function Profile() {
             // Refresh layout or status
             await fetchProfile();
             window.dispatchEvent(new Event('profileUpdated'));
-            alert('Hệ thống cập nhật thông tin bản thể thành công!');
+            setAlertConfig({
+                title: "CẬP NHẬT THÀNH CÔNG",
+                message: "Hệ thống cập nhật thông tin bản thể thành công!",
+                type: "success"
+            });
         } catch (err: any) {
             console.error("Lỗi khi cập nhật thông tin hồ sơ:", err);
             setErrorMsg(err.message || 'Không thể cập nhật hồ sơ, vui lòng kiểm tra lại kết nối.');
@@ -138,8 +146,6 @@ export default function Profile() {
 
     if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG ĐỒNG BỘ THÔNG TIN BẢN THỂ...</h3></div>;
     if (!profile) return <div className={styles.centerLoading}><h3>❌ KHÔNG TÌM THẤY DỮ LIỆU THỢ SĂN.</h3></div>;
-
-    const defaultAvatar = "https://lh3.googleusercontent.com/aida-public/AB6AXuDEKLlUzRvvpISR-0lZQmXWsGgz22UXc-gHzCFcQtKfGVHo7IGdf3rvsPV3VG5nrVWtkOfLglpFzBu1Nf-ZsYOutA_vy8m2hVcZ33uhYgVLcXWyD0He0f3hKqVX1pT7DwiEOzTaEFWPx01LHY5M_Nzo6qvarZbEz5KOpggoekfDdEhJ9Zpx5MlGXwZOjA8gHpjdhbNSnJ-82ZtsJa7e7hIST_UKMXTfrMHEH_0FdgiCaLKPUFpvDsYNkbmZ8l43HezLZwDRYlV_PJw";
 
     return (
         <div className={styles.profileCanvas}>
@@ -175,7 +181,7 @@ export default function Profile() {
                         <img 
                             className={styles.avatarBig} 
                             alt="Hunter Avatar" 
-                            src={profile.avatar || defaultAvatar}
+                            src={getAvatarUrl(profile.avatar)}
                         />
                     </div>
                     <div className={styles.metaColumn}>
@@ -262,6 +268,12 @@ export default function Profile() {
             {editMode && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
+                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.topRight}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
+                        <div className={styles.scanline}></div>
+
                         <h2 className={styles.modalTitle}>
                             <span className="material-symbols-outlined">edit_square</span>
                             Modify Bản Thể Profile
@@ -273,7 +285,7 @@ export default function Profile() {
                                 <div className={styles.avatarSelectRow}>
                                     <img 
                                         className={styles.previewAvatar} 
-                                        src={avatarPreview || defaultAvatar} 
+                                        src={getAvatarUrl(avatarPreview)} 
                                         alt="Avatar Preview" 
                                     />
                                     <div className={styles.fileInputWrapper}>
@@ -340,6 +352,19 @@ export default function Profile() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {alertConfig && (
+                <SystemAlert 
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    type={alertConfig.type}
+                    onClose={() => {
+                        const cb = alertConfig.onClose;
+                        setAlertConfig(null);
+                        if (cb) cb();
+                    }}
+                />
             )}
         </div>
     );

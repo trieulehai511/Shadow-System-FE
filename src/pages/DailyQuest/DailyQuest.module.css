@@ -309,19 +309,25 @@
 .levelUpOverlay {
     position: fixed;
     inset: 0;
-    z-index: 100;
-    background-color: rgba(10, 14, 20, 0.85); /* Dark immersive backdrop */
+    z-index: 1000;
+    background-color: rgba(6, 8, 12, 0.85); /* Dark immersive backdrop */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: var(--spacing-container-margin);
+    animation: fadeInOverlay 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .levelUpCard {
-    background-color: var(--color-surface-container);
-    border: 1px solid var(--color-primary-container);
+    background-color: rgba(18, 22, 28, 0.95);
+    border: 1px solid rgba(0, 209, 255, 0.3);
     padding: var(--spacing-stack-lg);
     max-width: 480px;
     width: 100%;
@@ -330,50 +336,113 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    box-shadow: 0 0 32px rgba(0, 209, 255, 0.3);
+    box-shadow: 0 0 45px rgba(0, 209, 255, 0.2), inset 0 0 25px rgba(0, 209, 255, 0.05);
     position: relative;
-    animation: zoomInModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow: hidden;
+    animation: zoomInModal 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes zoomInModal {
     from {
-        transform: scale(0.9);
+        transform: scale(0.9) translateY(10px);
         opacity: 0;
     }
     to {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
     }
 }
 
+/* Corner sci-fi decorations */
+.corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: var(--color-primary-container);
+    border-style: solid;
+    pointer-events: none;
+}
+
+.topLeft {
+    top: -2px;
+    left: -2px;
+    border-width: 3px 0 0 3px;
+}
+
+.topRight {
+    top: -2px;
+    right: -2px;
+    border-width: 3px 3px 0 0;
+}
+
+.bottomLeft {
+    bottom: -2px;
+    left: -2px;
+    border-width: 0 0 3px 3px;
+}
+
+.bottomRight {
+    bottom: -2px;
+    right: -2px;
+    border-width: 0 3px 3px 0;
+}
+
+/* Scanline Effect */
+.scanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.2) 50%,
+        rgba(0, 0, 0, 0.2)
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
 .levelUpIcon {
-    font-size: 64px;
+    font-size: 72px;
     color: var(--color-primary-container);
     margin-bottom: 8px;
-    filter: drop-shadow(0 0 8px rgba(0, 209, 255, 0.5));
+    filter: drop-shadow(0 0 12px rgba(0, 209, 255, 0.6));
+    z-index: 2;
 }
 
 .levelUpTitle {
     font-family: var(--font-display);
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
-    line-height: 40px;
+    line-height: 44px;
     color: var(--color-primary-container);
-    letter-spacing: 0.05em;
-    margin: 0;
+    letter-spacing: 0.12em;
+    margin-bottom: 20px;
     text-transform: uppercase;
-    text-shadow: 0 0 12px rgba(0, 209, 255, 0.4);
+    text-shadow: 0 0 15px rgba(0, 209, 255, 0.6);
+    z-index: 2;
 }
 
 .levelUpRank {
     font-family: var(--font-display);
-    font-size: 48px;
+    font-size: 56px;
     font-weight: 700;
-    line-height: 56px;
-    letter-spacing: -0.02em;
+    line-height: 64px;
+    letter-spacing: 0.05em;
     color: var(--color-secondary); /* Awakening Purple rank */
     margin: 16px 0;
-    text-shadow: 0 0 16px rgba(209, 188, 255, 0.6);
+    text-shadow: 0 0 20px rgba(209, 188, 255, 0.8), 0 0 40px rgba(209, 188, 255, 0.4);
+    animation: rankPulse 2s infinite ease-in-out;
+    z-index: 2;
+}
+
+@keyframes rankPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.05); filter: brightness(1.25); }
 }
 
 .levelUpSubtitle {
@@ -382,27 +451,29 @@
     line-height: 24px;
     color: var(--color-on-surface-variant);
     margin: 0 0 var(--spacing-stack-lg) 0;
+    z-index: 2;
 }
 
 .levelUpBtn {
     width: 100%;
     padding: 14px;
-    background-color: var(--color-primary-container);
+    background-color: rgba(0, 209, 255, 0.1);
     border: 1px solid var(--color-primary-container);
-    color: var(--color-surface-container-lowest);
+    color: var(--color-primary-container);
     font-family: var(--font-mono);
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     text-transform: uppercase;
+    z-index: 2;
 }
 
 .levelUpBtn:hover {
-    background-color: transparent;
-    color: var(--color-primary-container);
-    box-shadow: 0 0 20px rgba(0, 209, 255, 0.4);
+    background-color: var(--color-primary-container);
+    color: #0a0e14;
+    box-shadow: 0 0 25px rgba(0, 209, 255, 0.5);
 }
 
 /* Side Info Column */

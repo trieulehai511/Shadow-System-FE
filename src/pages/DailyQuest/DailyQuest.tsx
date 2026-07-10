@@ -136,15 +136,21 @@ export default function DailyQuest() {
             {showLevelUp && (
                 <div className={styles.levelUpOverlay}>
                     <div className={styles.levelUpCard}>
+                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.topRight}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
+                        <div className={styles.scanline}></div>
+
                         <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>military_tech</span>
                         <h2 className={styles.levelUpTitle}>QUEST CLEARED</h2>
-                        <div className={styles.levelUpRank}>S-RANK</div>
+                        {/* <div className={styles.levelUpRank}>S-RANK</div> */}
                         <p className={styles.levelUpSubtitle}>You have completed all system instructions.</p>
                         <button 
                             className={styles.levelUpBtn} 
                             onClick={() => setShowLevelUp(false)}
                         >
-                            CONFIRM LINK
+                            CONFIRM 
                         </button>
                     </div>
                 </div>
