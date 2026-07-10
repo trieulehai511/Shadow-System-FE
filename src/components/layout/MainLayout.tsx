@@ -122,10 +122,15 @@ export default function MainLayout() {
                             </Link>
                         </li>
                         <li>
-                            <a href="#" className={styles.navItem}>
-                                <span className="material-symbols-outlined">assignment</span>
+                            <Link 
+                                to="/exercises" 
+                                className={`${styles.navItem} ${location.pathname === '/exercises' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/exercises' ? styles.fillIcon : ''}`}>
+                                    assignment
+                                </span>
                                 <span>Quests</span>
-                            </a>
+                            </Link>
                         </li>
                         <li>
                             <Link 
@@ -203,10 +208,10 @@ export default function MainLayout() {
                     <span className="material-symbols-outlined">home</span>
                     <span>Home</span>
                 </Link>
-                <a href="#" className={styles.mobileTab} onClick={(e) => e.preventDefault()}>
+                <Link to="/exercises" className={`${styles.mobileTab} ${location.pathname === '/exercises' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">fitness_center</span>
                     <span>Quests</span>
-                </a>
+                </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">bar_chart</span>
                     <span>Stats</span>

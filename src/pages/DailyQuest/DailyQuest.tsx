@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest } from '../../services/api';
 import styles from './DailyQuest.module.css';
-import type { DailyQuestResponse } from '../../models/QuestModel';
+import type { DailyQuestResponse, QuestItem } from '../../models/QuestModel';
 
 type TokenPayload = {
     sub: string;
@@ -18,6 +18,7 @@ export default function DailyQuest() {
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [penaltyTime, setPenaltyTime] = useState<string>("11:42:09");
+    const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
     const navigate = useNavigate();
 
     type QuestLogItem = {
@@ -155,6 +156,94 @@ export default function DailyQuest() {
                     </div>
                 </div>
             )}
+
+            {/* EXERCISE DETAIL MODAL */}
+            {selectedExerciseForModal && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedExerciseForModal(null)}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.topRight}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
+                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
+                        <div className={styles.scanline}></div>
+
+                        <button 
+                            className={styles.closeBtn}
+                            onClick={() => setSelectedExerciseForModal(null)}
+                        >
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+
+                        <div className={styles.exerciseDetailHeader}>
+                            <span className={styles.categoryBadge}>{selectedExerciseForModal.category}</span>
+                            <h2 className={styles.detailTitle}>{selectedExerciseForModal.exerciseName}</h2>
+                            <p className={styles.detailTarget}>
+                                Target Stat: <span className={styles.neonBlue}>{selectedExerciseForModal.targetStat}</span>
+                            </p>
+                        </div>
+
+                        <div className={styles.detailBody}>
+                            {selectedExerciseForModal.imageUrl && (
+                                <div className={styles.detailImageContainer}>
+                                    <img 
+                                        src={selectedExerciseForModal.imageUrl} 
+                                        alt={selectedExerciseForModal.exerciseName} 
+                                        className={styles.detailImage}
+                                    />
+                                </div>
+                            )}
+
+                            <div className={styles.detailSection}>
+                                <h3 className={styles.sectionHeader}>
+                                    <span className="material-symbols-outlined">description</span>
+                                    MÔ TẢ BÀI TẬP
+                                </h3>
+                                <p className={styles.sectionText}>
+                                    {selectedExerciseForModal.description || "Không có mô tả cho bài tập này."}
+                                </p>
+                            </div>
+
+                            <div className={styles.detailStatsRow}>
+                                <div className={styles.detailStatCard}>
+                                    <span className={styles.statLabel}>TARGET SETS</span>
+                                    <span className={styles.statVal}>{selectedExerciseForModal.targetSets} Sets</span>
+                                </div>
+                                <div className={styles.detailStatCard}>
+                                    <span className={styles.statLabel}>TARGET REPS</span>
+                                    <span className={styles.statVal}>{selectedExerciseForModal.targetReps} Reps</span>
+                                </div>
+                            </div>
+
+                            {selectedExerciseForModal.safetyTips && (
+                                <div className={styles.detailSection}>
+                                    <h3 className={`${styles.sectionHeader} ${styles.warningHeader}`}>
+                                        <span className="material-symbols-outlined">gpp_maybe</span>
+                                        LƯU Ý AN TOÀN
+                                    </h3>
+                                    <p className={styles.sectionText}>
+                                        {selectedExerciseForModal.safetyTips}
+                                    </p>
+                                </div>
+                            )}
+
+                            {selectedExerciseForModal.tutorialVideoUrl && (
+                                <div className={styles.detailSection}>
+                                    <a 
+                                        href={selectedExerciseForModal.tutorialVideoUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className={styles.videoLinkBtn}
+                                    >
+                                        <span className="material-symbols-outlined">play_circle</span>
+                                        XEM VIDEO HƯỚNG DẪN
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* BENTO GRID LAYOUT */}
             <div className={styles.bentoGrid}>
                 
@@ -230,6 +319,13 @@ export default function DailyQuest() {
                                         <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
                                             {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
                                         </span>
+                                        <button 
+                                            className={styles.infoBtn}
+                                            onClick={() => setSelectedExerciseForModal(item)}
+                                            title="Xem chi tiết"
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
+                                        </button>
                                     </div>
                                     <span className={styles.exerciseStat}>
                                         {item.completed ? `${item.targetReps}/${item.targetReps}` : `0/${item.targetReps}`}

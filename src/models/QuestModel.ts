@@ -7,6 +7,10 @@ export interface QuestItem {
     targetReps: number;
     targetStat: string;
     completed: boolean;
+    description?: string;
+    tutorialVideoUrl?: string;
+    imageUrl?: string;
+    safetyTips?: string;
 }
 
 export interface DailyQuestResponse {
@@ -15,4 +19,19 @@ export interface DailyQuestResponse {
     completed: boolean;
     restDay: boolean;
     questItems: QuestItem[];
+}
+
+export interface ExerciseResponse {
+    id: string;
+    name: string;
+    category: string;
+    targetStat: string;
+    baseSets: number;
+    baseReps: number;
+    description?: string;
+    tutorialVideoUrl?: string;
+    imageUrl?: string;
+    safetyTips?: string;
+    isSystem: boolean;
+    hunterId?: string;
 }

@@ -3,6 +3,7 @@ import Login from './pages/Login/Login';
 import DailyQuest from './pages/DailyQuest/DailyQuest';
 import QuestHistory from './pages/QuestHistory/QuestHistory';
 import Profile from './pages/Profile/Profile';
+import ExerciseSelection from './pages/ExerciseSelection/ExerciseSelection';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 
@@ -24,6 +25,7 @@ export default function App() {
                     {/* Vào đường dẫn gốc tự động đá qua trang nhiệm vụ */}
                     <Route path="/" element={<Navigate to="/daily-quest" replace />} />
                     <Route path="/daily-quest" element={<DailyQuest />} />
+                    <Route path="/exercises" element={<ExerciseSelection />} />
                     <Route path="/history" element={<QuestHistory />} />
                     <Route path="/profile" element={<Profile />} />
                 </Route>
