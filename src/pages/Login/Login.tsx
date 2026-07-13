@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
 import styles from './Login.module.css';
+import loginBg from '../../assets/Untitled.jpeg';
 
 type LoginApiResponse = {
     code: number;
@@ -73,87 +74,91 @@ export default function Login() {
 
     return (
         <div className={styles.screenContainer}>
-            {/* Ambient Gate Background */}
-            <div className={styles.gateBgWrapper} aria-hidden="true">
-                <div className={styles.gateBg}></div>
-                <div className={styles.gateRays}></div>
+            {/* Fullscreen Artwork Background */}
+            <div className={styles.artworkBackground}>
+                <div className={styles.artworkOverlay}></div>
+                <img src={loginBg} alt="Shadow Gate Artwork" className={styles.artworkImage} />
             </div>
 
-            <main className={styles.loginWrapper}>
-                {/* Header Section */}
-                <div className={styles.brandBlock}>
-                    <span className={`material-symbols-outlined ${styles.brandIcon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                        sports_mma
-                    </span>
-                    <h1 className={styles.title}>Awaken Your Potential</h1>
-                    <p className={styles.subtitle}>Initiate System Link</p>
-                </div>
+            {/* Left Panel: Login content */}
+            <div className={styles.loginLeftPanel}>
+                <main className={styles.loginWrapper}>
+                    {/* Header Section */}
+                    <div className={styles.brandBlock}>
+                        <span className={`material-symbols-outlined ${styles.brandIcon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                            sports_mma
+                        </span>
+                        <h1 className={styles.title}>Awaken Your Potential</h1>
+                        <p className={styles.subtitle}>Initiate System Link</p>
+                    </div>
 
-                {/* Login Card */}
-                <div className={`${styles.loginBox} group`}>
-                    {/* Subtle accent border */}
-                    <div className={styles.accentBorder}></div>
+                    {/* Login Card */}
+                    <div className={`${styles.loginBox} group`}>
+                        {/* Subtle accent border */}
+                        <div className={styles.accentBorder}></div>
 
-                    <form className={styles.form} onSubmit={handleLogin}>
-                        {/* Email Input */}
-                        <div className={styles.inputGroup}>
-                            <label htmlFor="email">Hunter ID / Email</label>
-                            <div className={styles.inputShell}>
-                                <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
-                                    badge
-                                </span>
-                                <input
-                                    id="email"
-                                    type="text"
-                                    placeholder="Enter your registered ID"
-                                    value={username}
-                                    onChange={(event) => setUsername(event.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password Input */}
-                        <div className={styles.inputGroup}>
-                            <div className={styles.labelRow}>
-                                <label htmlFor="password">Passcode</label>
-                                <button className={styles.recoverLink} type="button">Recover?</button>
-                            </div>
-                            <div className={styles.inputShell}>
-                                <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
-                                    key
-                                </span>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(event) => setPassword(event.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className={styles.actionWrapper}>
-                            <button className={styles.actionButton} type="submit">
-                                <span className="material-symbols-outlined">login</span>
-                                Login
-                            </button>
-
-                            <div className={styles.divider}>
-                                <span>OR</span>
+                        <form className={styles.form} onSubmit={handleLogin}>
+                            {/* Email Input */}
+                            <div className={styles.inputGroup}>
+                                <label htmlFor="email">Hunter ID / Email</label>
+                                <div className={styles.inputShell}>
+                                    <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
+                                        badge
+                                    </span>
+                                    <input
+                                        id="email"
+                                        type="text"
+                                        placeholder="Enter your registered ID"
+                                        value={username}
+                                        onChange={(event) => setUsername(event.target.value)}
+                                    />
+                                </div>
                             </div>
 
-                            <button className={styles.registerButton} type="button">
-                                <span className="material-symbols-outlined">person_add</span>
-                                Sign Up as Hunter
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </main>
+                            {/* Password Input */}
+                            <div className={styles.inputGroup}>
+                                <div className={styles.labelRow}>
+                                    <label htmlFor="password">Passcode</label>
+                                    <button className={styles.recoverLink} type="button">Recover?</button>
+                                </div>
+                                <div className={styles.inputShell}>
+                                    <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
+                                        key
+                                    </span>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(event) => setPassword(event.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className={styles.actionWrapper}>
+                                <button className={styles.actionButton} type="submit">
+                                    <span className="material-symbols-outlined">login</span>
+                                    Login
+                                </button>
+
+                                <div className={styles.divider}>
+                                    <span>OR</span>
+                                </div>
+                                <Link className={styles.link_wrapper} to="/register">
+                                    <button className={styles.registerButton} type="button">
+                                        <span className="material-symbols-outlined">person_add</span>
+                                        Sign Up as Hunter
+                                    </button>
+                                </Link>
+                            </div>
+                        </form>
+                    </div>
+                </main>
+            </div>
 
             {alertConfig && (
-                <SystemAlert 
+                <SystemAlert
                     title={alertConfig.title}
                     message={alertConfig.message}
                     type={alertConfig.type}

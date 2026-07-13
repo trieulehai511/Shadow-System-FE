@@ -129,7 +129,7 @@ export default function MainLayout() {
                                 <span className={`material-symbols-outlined ${location.pathname === '/exercises' ? styles.fillIcon : ''}`}>
                                     assignment
                                 </span>
-                                <span>Quests</span>
+                                <span>Exercises</span>
                             </Link>
                         </li>
                         <li>
@@ -210,7 +210,7 @@ export default function MainLayout() {
                 </Link>
                 <Link to="/exercises" className={`${styles.mobileTab} ${location.pathname === '/exercises' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">fitness_center</span>
-                    <span>Quests</span>
+                    <span>Exercises</span>
                 </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">bar_chart</span>
