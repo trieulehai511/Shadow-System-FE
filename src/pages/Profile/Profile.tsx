@@ -187,6 +187,10 @@ export default function Profile() {
                             <span className={styles.statLabel}>Streak</span>
                         </div>
                         <div className={styles.statItem}>
+                            <span className={styles.statValue}>{profile.maxStreak}</span>
+                            <span className={styles.statLabel}>Best</span>
+                        </div>
+                        <div className={styles.statItem}>
                             <span className={`${styles.statValue} ${styles.rankValue}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
                             <span className={styles.statLabel}>Rank</span>
                         </div>
@@ -241,34 +245,6 @@ export default function Profile() {
                             <span className={styles.attrValue}>{profile.shieldCount}</span>
                             <span className={styles.attrName}>Shields</span>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* HUNTER RECORDS SECTION */}
-            <div className={styles.recordsSection}>
-                <h3 className={styles.sectionTitle}>Hunter Records</h3>
-                <div className={styles.recordsGrid}>
-                    <div className={styles.recordCard}>
-                        <span className={styles.recordLabel}>
-                            <span className="material-symbols-outlined">local_fire_department</span>
-                            Max Streak
-                        </span>
-                        <span className={styles.recordValue}>{profile.maxStreak} Days</span>
-                    </div>
-                    <div className={styles.recordCard}>
-                        <span className={styles.recordLabel}>
-                            <span className="material-symbols-outlined">fingerprint</span>
-                            Hunter Code
-                        </span>
-                        <span className={styles.recordValue}>{profile.hunterCode}</span>
-                    </div>
-                    <div className={styles.recordCard}>
-                        <span className={styles.recordLabel}>
-                            <span className="material-symbols-outlined">military_tech</span>
-                            Rank Tier
-                        </span>
-                        <span className={styles.recordValue}>{profile.rankTier?.replace('_', ' ') || 'E Rank'}</span>
                     </div>
                 </div>
             </div>
