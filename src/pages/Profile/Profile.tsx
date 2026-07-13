@@ -185,7 +185,8 @@ export default function Profile() {
                         />
                     </div>
                     <div className={styles.metaColumn}>
-                        <h2 className={styles.hunterName}>{profile.fullName} ({profile.userName})</h2>
+                        <h2 className={styles.hunterName}>{profile.fullName}</h2>
+                        <h3>username: {profile.userName}</h3>
                         <span className={styles.titleBadge}>Active Hunter (Age: {profile.age || 'Awakened'})</span>
                         <div className={styles.levelGroup}>
                             <span className={styles.levelLabel}>Rank:</span>
