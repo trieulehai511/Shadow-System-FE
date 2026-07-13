@@ -1,0 +1,202 @@
+.centerLoading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 400px;
+    color: var(--color-primary-container);
+    font-family: var(--font-mono);
+}
+
+.historyCanvas {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    color: var(--color-on-surface);
+}
+
+.historyHeader {
+    border-bottom: 1px solid var(--color-outline-variant);
+    padding-bottom: var(--spacing-stack-md);
+    margin-bottom: var(--spacing-stack-lg);
+}
+
+.titleWrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-stack-sm);
+    color: var(--color-primary);
+}
+
+.titleWrapper span {
+    font-size: 32px;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 40px;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 209, 255, 0.3);
+}
+
+.subtitle {
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 24px;
+    margin: 4px 0 0 0;
+}
+
+.groupedList {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.dateGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dateHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 2px solid var(--color-primary-container);
+    padding-bottom: 8px;
+    color: var(--color-primary-container);
+}
+
+.dateHeader span {
+    font-size: 20px;
+}
+
+.dateHeader h2 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.logContainer {
+    width: 100%;
+}
+
+.logList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.logCard {
+    background-color: rgba(28, 32, 38, 0.4);
+    border: 1px solid var(--color-outline-variant);
+    padding: 20px;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.logCard:hover {
+    border-color: rgba(0, 209, 255, 0.4);
+    box-shadow: 0 0 12px rgba(0, 209, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.logHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(133, 147, 153, 0.1);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+.logMeta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-gutter);
+}
+
+.logTag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+}
+
+.logStatus {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-primary-container);
+    text-shadow: 0 0 4px rgba(0, 209, 255, 0.4);
+}
+
+.statAccent {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-secondary); /* awakening purple */
+    text-shadow: 0 0 6px rgba(209, 188, 255, 0.4);
+}
+
+.logDetail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-unit);
+}
+
+.exerciseName {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    margin: 0;
+    color: var(--color-on-surface);
+}
+
+.setsInfo {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+}
+
+.noLogsCard {
+    background-color: var(--color-surface-container-low);
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 0.5rem;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: var(--color-on-surface-variant);
+}
+
+.noLogsCard span {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.noLogsCard h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    margin: 0 0 8px 0;
+    color: var(--color-on-surface);
+}
+
+.noLogsCard p {
+    font-family: var(--font-body);
+    font-size: 16px;
+    margin: 0;
+}

@@ -1,8 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/auth/Login';
-import DailyQuest from './components/quests/DailyQuest';
+import { BrowserRouter, Routes, Route, Navigate, RouterContextProvider, Router } from 'react-router-dom';
+import Login from './pages/Login/Login';
+import DailyQuest from './pages/DailyQuest/DailyQuest';
+import QuestHistory from './pages/QuestHistory/QuestHistory';
+import Profile from './pages/Profile/Profile';
+import ExerciseSelection from './pages/ExerciseSelection/ExerciseSelection';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
+import Register from './pages/Register/Register';
 
 export default function App() {
     return (
@@ -10,6 +14,7 @@ export default function App() {
             <Routes>
                 {/* Trang login nằm riêng lẻ, không có sidebar hay header */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
                 {/* Hệ thống bảo mật bắt buộc qua ProtectedRoute và dùng chung MainLayout */}
                 <Route 
@@ -22,6 +27,9 @@ export default function App() {
                     {/* Vào đường dẫn gốc tự động đá qua trang nhiệm vụ */}
                     <Route path="/" element={<Navigate to="/daily-quest" replace />} />
                     <Route path="/daily-quest" element={<DailyQuest />} />
+                    <Route path="/exercises" element={<ExerciseSelection />} />
+                    <Route path="/history" element={<QuestHistory />} />
+                    <Route path="/profile" element={<Profile />} />
                 </Route>
 
                 {/* Tự động chuyển hướng nếu gõ sai URL */}
