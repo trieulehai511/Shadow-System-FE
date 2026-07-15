@@ -134,9 +134,17 @@ export default function MainLayout() {
                                 <span className={styles.navText}>History</span>
                             </Link>
                         </li>
-                        {/* <li>
-                            
-                        </li> */}
+                        <li>
+                            <Link
+                                to="/leaderboard"
+                                className={`${styles.navItem} ${location.pathname === '/leaderboard' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/leaderboard' ? styles.fillIcon : ''}`}>
+                                    trophy
+                                </span>
+                                <span className={styles.navText}>Leaderboard</span>
+                            </Link>
+                        </li>
                     </ul>
 
                     {/* Footer Settings & Logout */}
@@ -145,22 +153,22 @@ export default function MainLayout() {
                             className={styles.navItem}
                             onClick={() => navigate('/profile')}
                         >
-                             <div className={styles.sidebarAvatarWrapper}>
-                                    <img
-                                        className={styles.sidebarAvatarImg}
-                                        alt="Hunter Avatar"
-                                        src={getAvatarUrl(avatar)}
-                                    />
-                                </div>
+                            <div className={styles.sidebarAvatarWrapper}>
+                                <img
+                                    className={styles.sidebarAvatarImg}
+                                    alt="Hunter Avatar"
+                                    src={getAvatarUrl(avatar)}
+                                />
+                            </div>
                             <span className={styles.navText}>
                                 <Link
-                                to="/profile"
-                                className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
-                            >
-                               
-                                <span className={styles.navText}>Profile</span>
-                            </Link>
-                           
+                                    to="/profile"
+                                    className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
+                                >
+
+                                    <span className={styles.navText}>Profile</span>
+                                </Link>
+
                             </span>
                         </button>
 
@@ -241,6 +249,9 @@ export default function MainLayout() {
                 </Link>
                 <Link to="/history" className={`${styles.mobileTab} ${location.pathname === '/history' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">history</span>
+                </Link>
+                <Link to="/leaderboard" className={`${styles.mobileTab} ${location.pathname === '/leaderboard' ? styles.activeTab : ''}`}>
+                    <span className="material-symbols-outlined">leaderboard</span>
                 </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <div className={`${styles.mobileAvatarWrapper} ${location.pathname === '/profile' ? styles.activeMobileAvatar : ''}`}>

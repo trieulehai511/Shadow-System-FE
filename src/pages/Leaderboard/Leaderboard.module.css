@@ -1,0 +1,174 @@
+.container{
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+.headerSection {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    margin: 0;
+}
+.subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 5px;
+    letter-spacing: 1px;
+}
+
+.leaderboardList{
+    display: flex;
+    flex-direction: column;
+}
+.hunterCard{
+    display: flex;
+    align-items: center;
+    background: rgba(30, 30, 35, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px 20px;
+    height: 80px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+
+}
+.hunterCard:hover {
+    transform: translateX(5px);
+    background: rgba(40, 40, 45, 0.8);
+}
+.top1 {
+    border-left: 5px solid #ffd700;
+    height: 150px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+    background: rgba(45, 40, 25, 0.7);
+}
+.top1 .positionNumber { color: #ffd700; font-weight: bold; font-size: 1.3rem; }
+
+.top2 {
+    border-left: 5px solid #c0c0c0;
+    background: rgba(35, 35, 40, 0.7);
+    height: 120px;
+}
+.top2 .positionNumber { color: #c0c0c0; font-weight: bold; font-size: 1.2rem; }
+
+.top3 {
+    border-left: 5px solid #cd7f32;
+    height: 100px;
+}
+.top3 .positionNumber { color: #cd7f32; font-weight: bold; font-size: 1.1rem; }
+
+.positionWrapper {
+    width: 50px;
+    flex-shrink: 0;
+}
+.positionNumber {
+    font-size: 1rem;
+    color: #a0a0a0;
+}
+
+.avatarWrapper {
+    position: relative;
+    margin-right: 15px;
+}
+
+.avatarImg {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+rankBadge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: #00e5ff;
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+.infoWrapper {
+    flex-grow: 1;
+}
+
+.fullName {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.hunterCode {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 2px;
+}
+
+.statsWrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.statBox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: bold;
+}
+
+.statValue {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #00e5ff;
+}
+
+/* Loading & Error */
+.loadingContainer, .errorContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    color: #00e5ff;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.systemScanner {
+    animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 0.4; text-shadow: 0 0 5px #00e5ff; }
+    to { opacity: 1; text-shadow: 0 0 15px #00e5ff; }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .hunterCard {
+        padding: 10px;
+    }
+    .statsWrapper {
+        gap: 10px;
+    }
+    .statValue {
+        font-size: 0.95rem;
+    }
+}
