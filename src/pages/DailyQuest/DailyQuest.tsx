@@ -17,7 +17,6 @@ type DailyQuestApiResponse = {
 export default function DailyQuest() {
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const [penaltyTime, setPenaltyTime] = useState<string>("11:42:09");
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
     const navigate = useNavigate();
     
@@ -61,7 +60,7 @@ export default function DailyQuest() {
     useEffect(() => {
         const fetchDailyQuest = async (): Promise<void> => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 if (!token) {
                     navigate('/login');
                     return;
@@ -75,6 +74,7 @@ export default function DailyQuest() {
 
                 if (data.result) {
                     setQuestData(sortByInitialOrder(data.result));
+                    window.dispatchEvent(new CustomEvent('questUpdated'));
                 }
 
                 // 2. Fetch Quest Logs from the new API
@@ -97,32 +97,18 @@ export default function DailyQuest() {
         fetchDailyQuest();
     }, [navigate]);
 
-    // Simple countdown effect for the penalty clock
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setPenaltyTime(prev => {
-                const parts = prev.split(':').map(Number);
-                let seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                if (seconds <= 0) return "00:00:00";
-                seconds -= 1;
-                const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-                const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-                const s = String(seconds % 60).padStart(2, '0');
-                return `${h}:${m}:${s}`;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+
 
     const handleCompleteItem = async (itemId: string): Promise<void> => {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/item/${itemId}/complete`, {
                 method: 'PATCH'
             });
 
             if (data.result) {
                 setQuestData(sortByInitialOrder(data.result));
+                window.dispatchEvent(new CustomEvent('questUpdated'));
                 // Refresh Logs after completion
                 const decoded = jwtDecode<TokenPayload>(token || '');
                 const usernameParam = decoded.sub;
@@ -159,12 +145,6 @@ export default function DailyQuest() {
             {showLevelUp && (
                 <div className={styles.levelUpOverlay}>
                     <div className={styles.levelUpCard}>
-                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.topRight}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-                        <div className={styles.scanline}></div>
-
                         <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>military_tech</span>
                         <h2 className={styles.levelUpTitle}>QUEST CLEARED</h2>
                         {/* <div className={styles.levelUpRank}>S-RANK</div> */}
@@ -183,12 +163,6 @@ export default function DailyQuest() {
             {selectedExerciseForModal && (
                 <div className={styles.modalOverlay} onClick={() => setSelectedExerciseForModal(null)}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.topRight}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-                        <div className={styles.scanline}></div>
-
                         <button 
                             className={styles.closeBtn}
                             onClick={() => setSelectedExerciseForModal(null)}
@@ -358,60 +332,7 @@ export default function DailyQuest() {
                     </div>
                 </section>
 
-                {/* SIDE COLUMN: PENALTY & SYSTEM LOG */}
-                <div className={styles.sideColumn}>
-                    {/* Penalty Warning Card */}
-                    <section className={styles.penaltyCard}>
-                        <div className={styles.hazardOverlay} aria-hidden="true"></div>
-                        <div className={styles.penaltyContent}>
-                            <span className={`material-symbols-outlined ${styles.warningIcon}`}>warning</span>
-                            <h3 className={styles.penaltyTitle}>Penalty Warning</h3>
-                            <div className={styles.penaltyTimer}>
-                                {penaltyTime}
-                            </div>
-                            <div className={styles.penaltyInfoBox}>
-                                <p className={styles.infoLabel}>Failure Condition:</p>
-                                <p className={styles.infoValue}>The Penalty Quest of the Great Desert</p>
-                                <p className={styles.infoSubtext}>Survive for 4 hours.</p>
-                            </div>
-                        </div>
-                    </section>
 
-                    {/* System Log */}
-                    <section className={styles.systemLogCard}>
-                        <h3 className={styles.logHeader}>
-                            <span className="material-symbols-outlined">terminal</span>
-                            System Log
-                        </h3>
-                        <ul className={styles.logList}>
-                            {questLogs.length > 0 ? (
-                                questLogs.map((log) => {
-                                    // Extract HH:MM or format date elegantly
-                                    const timeStr = log.logDate ? new Date(log.logDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-                                    const isActive = log.status === 'ACTIVE' || log.status === 'IN_PROGRESS';
-                                    const isDim = log.status === 'INFO';
-                                    
-                                    return (
-                                        <li 
-                                            key={log.id} 
-                                            className={
-                                                isActive ? styles.logItemActive : (isDim ? styles.logItemDim : styles.logItemNormal)
-                                            }
-                                        >
-                                            <span className={styles.logTime}>[{timeStr || 'LOG'}]</span>
-                                            <span className={isActive ? styles.pulseText : ''}>{log.message}</span>
-                                        </li>
-                                    );
-                                })
-                            ) : (
-                                <li className={styles.logItemDim}>
-                                    <span className={styles.logTime}>[SYSTEM]</span>
-                                    <span>No quest logs recorded yet.</span>
-                                </li>
-                            )}
-                        </ul>
-                    </section>
-                </div>
 
             </div>
         </div>

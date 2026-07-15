@@ -57,6 +57,20 @@ if (loading) {
 
 
 
+    const getRankClass = (tier: string) => {
+        const firstLetter = tier.trim().toUpperCase()[0];
+        switch (firstLetter) {
+            case 'S': return styles.rankS;
+            case 'A': return styles.rankA;
+            case 'B': return styles.rankB;
+            case 'C': return styles.rankC;
+            case 'D': return styles.rankD;
+            case 'E':
+            default:
+                return styles.rankE;
+        }
+    };
+
     return (
         <div className={styles.container}>
            
@@ -76,9 +90,15 @@ if (loading) {
 
                     return (
                         <div key={hunter.hunterCode} className={`${styles.hunterCard} ${rankClass}`}>
-                            {/* Thứ hạng số */}
+                            {/* Thứ hạng số hoặc Trophy */}
                             <div className={styles.positionWrapper}>
-                                <span className={styles.positionNumber}>#{hunter.position}</span>
+                                {hunter.position <= 3 ? (
+                                    <span className={`material-symbols-outlined ${styles.trophyIcon} ${styles['top' + hunter.position + 'Icon']}`}>
+                                        emoji_events
+                                    </span>
+                                ) : (
+                                    <span className={styles.positionNumber}>#{hunter.position}</span>
+                                )}
                             </div>
 
                             {/* Avatar */}
@@ -88,7 +108,9 @@ if (loading) {
                                     alt={hunter.fullName} 
                                     className={styles.avatarImg}
                                 />
-                                <span className={styles.rankBadge}>{hunter.rankTier}</span>
+                                <span className={`${styles.rankBadge} ${getRankClass(hunter.rankTier)}`}>
+                                    {hunter.rankTier.trim().toUpperCase()[0]}
+                                </span>
                             </div>
 
                             {/* Thông tin chính */}
@@ -99,15 +121,10 @@ if (loading) {
 
                             {/* Chỉ số RP và Streak */}
                             <div className={styles.statsWrapper}>
-                                <div className={styles.statBox}>
-                                    <span className={styles.statLabel}>RP</span>
-                                    <span className={styles.statValue}>{hunter.currentRp}</span>
-                                </div>
-                                <div className={styles.statBox}>
-                                    <span className="material-symbols-outlined" style={{ color: '#ff5722', fontSize: '18px' }}>
-                                        local_fire_department
-                                    </span>
-                                    <span className={styles.statValue}>{hunter.currentStreak}d</span>
+                                <div className={styles.rpValue}>{hunter.currentRp} RP</div>
+                                <div className={styles.streakWrapper}>
+                                    <span className="material-symbols-outlined">local_fire_department</span>
+                                    <span>{hunter.currentStreak}d Streak</span>
                                 </div>
                             </div>
                         </div>

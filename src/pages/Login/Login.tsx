@@ -45,7 +45,7 @@ export default function Login() {
             });
 
             if (data.code === 200 && data.result?.authenticated) {
-                localStorage.setItem('token', data.result.token);
+                sessionStorage.setItem('token', data.result.token);
                 setAlertConfig({
                     title: "HỆ THỐNG XÁC THỰC",
                     message: "Hệ thống xác nhận bản thể thành công!",

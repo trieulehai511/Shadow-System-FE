@@ -14,26 +14,25 @@
 .dashboardCanvas {
     position: relative;
     width: 100%;
-    max-width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     color: var(--color-on-surface);
+    padding: 2rem 1rem;
 }
 
 /* Bento Grid Layout */
 .bentoGrid {
     position: relative;
     z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 24px;
 }
 
 /* Status section level and XP */
 .statusSection {
-    grid-column: span 12;
-    background: linear-gradient(135deg, rgba(20, 20, 23, 0.6) 0%, rgba(9, 9, 11, 0.8) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 2px solid var(--color-outline-variant);
+    background: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
     border-radius: 12px;
     padding: 24px;
     display: flex;
@@ -157,11 +156,8 @@
 
 /* Daily Quest Box */
 .questSection {
-    grid-column: span 8;
-    background: linear-gradient(135deg, rgba(20, 20, 23, 0.4) 0%, rgba(9, 9, 11, 0.6) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 2px solid var(--color-outline-variant);
+    background: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
     border-radius: 12px;
     padding: 32px;
     position: relative;
@@ -850,9 +846,8 @@
 }
 
 .itemPending {
-    background-color: rgba(0, 209, 255, 0.05);
-    border-left: 4px solid var(--color-primary-container);
-    box-shadow: inset 4px 0 0 var(--color-primary-container);
+    background-color: var(--color-surface-container);
+    border-left: 4px solid var(--color-on-surface);
 }
 
 .exerciseLeft {
@@ -864,13 +859,13 @@
 .checkBoxCompleted {
     width: 24px;
     height: 24px;
-    border-radius: 0.25rem;
-    border: 1px solid var(--color-primary-container);
+    border-radius: 6px;
+    border: 1.5px solid var(--color-on-surface);
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 209, 255, 0.2);
-    color: var(--color-primary-container);
+    background-color: var(--color-on-surface);
+    color: var(--color-surface);
 }
 
 .checkBoxCompleted span {
@@ -881,14 +876,19 @@
 .checkBoxPending {
     width: 24px;
     height: 24px;
-    border-radius: 0.25rem;
-    border: 1px solid var(--color-primary-container);
+    border-radius: 6px;
+    border: 1.5px solid var(--color-outline-variant);
     background: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     padding: 0;
+    transition: all 0.2s ease;
+}
+
+.checkBoxPending:hover {
+    border-color: var(--color-on-surface);
 }
 
 /* LEVEL-UP MODAL OVERLAY */
@@ -896,9 +896,9 @@
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background-color: rgba(6, 8, 12, 0.85); /* Dark immersive backdrop */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background-color: rgba(10, 12, 16, 0.8); /* Dark immersive backdrop */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -912,17 +912,17 @@
 }
 
 .levelUpCard {
-    background-color: rgba(18, 22, 28, 0.95);
-    border: 1px solid rgba(0, 209, 255, 0.3);
+    background-color: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
     padding: var(--spacing-stack-lg);
-    max-width: 480px;
+    max-width: 400px;
     width: 100%;
-    border-radius: 0px; /* Sharp corners based on rules */
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    box-shadow: 0 0 45px rgba(0, 209, 255, 0.2), inset 0 0 25px rgba(0, 209, 255, 0.05);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
     animation: zoomInModal 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -941,100 +941,37 @@
 
 /* Corner sci-fi decorations */
 .corner {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border-color: var(--color-primary-container);
-    border-style: solid;
-    pointer-events: none;
-}
-
-.topLeft {
-    top: -2px;
-    left: -2px;
-    border-width: 3px 0 0 3px;
-}
-
-.topRight {
-    top: -2px;
-    right: -2px;
-    border-width: 3px 3px 0 0;
-}
-
-.bottomLeft {
-    bottom: -2px;
-    left: -2px;
-    border-width: 0 0 3px 3px;
-}
-
-.bottomRight {
-    bottom: -2px;
-    right: -2px;
-    border-width: 0 3px 3px 0;
+    display: none;
 }
 
 /* Scanline Effect */
 .scanline {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0) 50%,
-        rgba(0, 0, 0, 0.2) 50%,
-        rgba(0, 0, 0, 0.2)
-    );
-    background-size: 100% 4px;
-    pointer-events: none;
-    opacity: 0.3;
+    display: none;
 }
 
 .levelUpIcon {
-    font-size: 72px;
-    color: var(--color-primary-container);
-    margin-bottom: 8px;
-    filter: drop-shadow(0 0 12px rgba(0, 209, 255, 0.6));
+    font-size: 64px;
+    color: var(--color-primary);
+    margin-bottom: 12px;
     z-index: 2;
 }
 
 .levelUpTitle {
     font-family: var(--font-display);
-    font-size: 36px;
+    font-size: 28px;
     font-weight: 700;
-    line-height: 44px;
-    color: var(--color-primary-container);
-    letter-spacing: 0.12em;
-    margin-bottom: 20px;
+    line-height: 36px;
+    color: var(--color-on-surface);
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
     text-transform: uppercase;
-    text-shadow: 0 0 15px rgba(0, 209, 255, 0.6);
     z-index: 2;
-}
-
-.levelUpRank {
-    font-family: var(--font-display);
-    font-size: 56px;
-    font-weight: 700;
-    line-height: 64px;
-    letter-spacing: 0.05em;
-    color: var(--color-secondary); /* Awakening Purple rank */
-    margin: 16px 0;
-    text-shadow: 0 0 20px rgba(209, 188, 255, 0.8), 0 0 40px rgba(209, 188, 255, 0.4);
-    animation: rankPulse 2s infinite ease-in-out;
-    z-index: 2;
-}
-
-@keyframes rankPulse {
-    0%, 100% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.05); filter: brightness(1.25); }
 }
 
 .levelUpSubtitle {
     font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 15px;
+    line-height: 22px;
     color: var(--color-on-surface-variant);
     margin: 0 0 var(--spacing-stack-lg) 0;
     z-index: 2;
@@ -1042,164 +979,147 @@
 
 .levelUpBtn {
     width: 100%;
-    padding: 14px;
-    background-color: rgba(0, 209, 255, 0.1);
-    border: 1px solid var(--color-primary-container);
-    color: var(--color-primary-container);
+    padding: 12px;
+    background-color: var(--color-on-surface);
+    border: none;
+    color: var(--color-surface);
     font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.15em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     text-transform: uppercase;
+    border-radius: 8px;
     z-index: 2;
 }
 
 .levelUpBtn:hover {
-    background-color: var(--color-primary-container);
-    color: #0a0e14;
-    box-shadow: 0 0 25px rgba(0, 209, 255, 0.5);
+    opacity: 0.9;
 }
 
-/* Side Info Column */
-.sideColumn {
-    grid-column: span 4;
+/* Header Penalty Timer Widget */
+.headerTimerGroup {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-gutter);
-}
-
-/* Penalty Card */
-.penaltyCard {
-    background-color: rgba(147, 0, 10, 0.1);
-    border: 1px solid rgba(255, 180, 171, 0.3);
-    border-radius: 0.75rem;
-    padding: var(--spacing-stack-md);
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(10px);
-}
-
-.hazardOverlay {
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 180, 171, 0.02) 10px, rgba(255, 180, 171, 0.02) 20px);
-    pointer-events: none;
-}
-
-.penaltyContent {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
+    gap: 8px;
+    position: relative;
 }
 
-.warningIcon {
-    color: var(--color-error);
-    font-size: 36px;
-    margin-bottom: 8px;
-    animation: bounceIcon 1s infinite alternate;
+.timerWrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
 }
 
-@keyframes bounceIcon {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-4px); }
+.timerIcon {
+    font-size: 18px;
 }
 
-.penaltyTitle {
-    font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 32px;
-    color: var(--color-error);
-    margin: 0;
-}
-
-.penaltyTimer {
-    font-family: var(--font-mono);
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: var(--color-error);
-    margin: 16px 0;
-    text-shadow: 0 0 8px rgba(255, 180, 171, 0.5);
-}
-
-.penaltyInfoBox {
-    background-color: rgba(10, 14, 20, 0.5);
-    border: 1px solid rgba(255, 180, 171, 0.2);
-    padding: 12px;
-    border-radius: 0.25rem;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.infoLabel {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: rgba(255, 180, 171, 0.8);
-    text-transform: uppercase;
-    margin: 0 0 4px 0;
-}
-
-.infoValue {
-    font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 24px;
-    color: var(--color-on-surface);
-    margin: 0;
-}
-
-.infoSubtext {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--color-on-surface-variant);
-    margin: 8px 0 0 0;
-}
-
-/* System Logs */
-.systemLogCard {
-    background-color: var(--color-surface-container-low);
-    border: 1px solid var(--color-outline-variant);
-    border-radius: 0.75rem;
-    padding: var(--spacing-stack-md);
-    flex: 1;
-}
-
-.logHeader {
+.timerText {
     font-family: var(--font-mono);
     font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-    letter-spacing: 0.1em;
-    color: var(--color-on-surface-variant);
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--color-outline-variant);
-    padding-bottom: 8px;
-    margin: 0 0 16px 0;
+    font-weight: 700;
+}
+
+/* Danger state (not completed) */
+.timerDanger .timerWrapper {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.timerDanger .infoTriggerBtn {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.timerDanger .tooltipTitle {
+    color: #ef4444;
+}
+
+/* Safe state (completed) */
+.timerSafe .timerWrapper {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.timerSafe .infoTriggerBtn {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.timerSafe .tooltipTitle {
+    color: #10b981;
+}
+
+.penaltyInfoWrapper {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
 }
 
-.logList {
-    list-style: none;
+.infoTriggerBtn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    transition: all 0.2s ease;
     padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
 }
 
-.logList li {
-    font-family: var(--font-mono);
+.infoTriggerBtn span {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.infoTriggerBtn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.penaltyTooltip {
+    position: absolute;
+    top: 130%;
+    right: 0;
+    width: 260px;
+    background-color: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 100;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
+    text-align: left;
+}
+
+.tooltipTitle {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.tooltipDesc {
     font-size: 12px;
-    line-height: 18px;
-    display: flex;
-    gap: 8px;
+    line-height: 1.5;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+}
+
+.tooltipDesc strong {
+    color: var(--color-on-surface);
 }
 
 .logItemDim {
@@ -1215,7 +1135,7 @@
 }
 
 .logTime {
-    color: rgba(0, 209, 255, 0.5);
+    color: var(--color-on-surface-variant);
     flex-shrink: 0;
 }
 
@@ -1237,13 +1157,11 @@
     .xpProgressContainer {
         max-width: 100%;
     }
-    
-    .questSection {
-        grid-column: span 12;
-    }
-    
+}
+
+@media (max-width: 768px) {
     .sideColumn {
-        grid-column: span 12;
+        grid-template-columns: 1fr;
     }
 }
 
@@ -1251,7 +1169,7 @@
 .infoBtn {
     background: transparent;
     border: none;
-    color: rgba(0, 209, 255, 0.6);
+    color: var(--color-on-surface-variant);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1262,9 +1180,8 @@
 }
 
 .infoBtn:hover {
-    color: rgba(0, 209, 255, 1);
+    color: var(--color-on-surface);
     transform: scale(1.1);
-    filter: drop-shadow(0 0 5px rgba(0, 209, 255, 0.8));
 }
 
 /* EXERCISE DETAIL MODAL overlays */
@@ -1272,62 +1189,62 @@
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background-color: rgba(6, 8, 12, 0.85);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    background-color: rgba(10, 12, 16, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: var(--spacing-container-margin);
-    animation: fadeInOverlay 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fadeInOverlay 0.2s ease-out forwards;
 }
 
 .modalContent {
-    background-color: rgba(18, 22, 28, 0.95);
-    border: 1px solid rgba(0, 209, 255, 0.3);
+    background-color: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
     padding: var(--spacing-stack-lg);
-    max-width: 540px;
+    max-width: 500px;
     width: 100%;
-    border-radius: 0px;
-    box-shadow: 0 0 45px rgba(0, 209, 255, 0.2), inset 0 0 25px rgba(0, 209, 255, 0.05);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow-y: auto;
     max-height: 90vh;
-    animation: zoomInModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: zoomInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .closeBtn {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 16px;
+    right: 16px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-on-surface-variant);
     cursor: pointer;
     z-index: 10;
     transition: all 0.2s;
 }
 
 .closeBtn:hover {
-    color: var(--color-error);
-    transform: rotate(90deg);
+    color: var(--color-on-surface);
 }
 
 .exerciseDetailHeader {
     margin-bottom: var(--spacing-stack-md);
-    border-bottom: 1px dashed rgba(0, 209, 255, 0.2);
+    border-bottom: 1.5px solid var(--color-outline-variant);
     padding-bottom: var(--spacing-stack-sm);
 }
 
 .categoryBadge {
     display: inline-block;
-    background: rgba(0, 209, 255, 0.1);
-    border: 1px solid rgba(0, 209, 255, 0.4);
-    color: var(--color-primary-container);
+    background: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
+    color: var(--color-on-surface);
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 2px 8px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    border-radius: 6px;
     text-transform: uppercase;
     margin-bottom: var(--spacing-stack-xs);
 }
@@ -1335,20 +1252,19 @@
 .detailTitle {
     font-family: var(--font-display);
     font-size: 24px;
-    color: rgba(255, 255, 255, 0.95);
+    font-weight: 700;
+    color: var(--color-on-surface);
     margin: var(--spacing-stack-xs) 0;
-    text-shadow: 0 0 10px rgba(0, 209, 255, 0.3);
 }
 
 .detailTarget {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-on-surface-variant);
 }
 
 .neonBlue {
-    color: var(--color-primary-container);
+    color: var(--color-primary);
     font-weight: bold;
-    text-shadow: 0 0 5px rgba(0, 209, 255, 0.5);
 }
 
 .detailBody {
@@ -1361,7 +1277,8 @@
     width: 100%;
     max-height: 250px;
     overflow: hidden;
-    border: 1px solid rgba(0, 209, 255, 0.2);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 12px;
     background: #000;
     display: flex;
     justify-content: center;
@@ -1375,21 +1292,21 @@
 }
 
 .detailSection {
-    background: rgba(25, 30, 38, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: var(--spacing-stack-sm);
+    background: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 12px;
+    padding: 16px;
 }
 
 .sectionHeader {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--color-primary-container);
+    color: var(--color-on-surface);
     margin-bottom: 8px;
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 5px rgba(0, 209, 255, 0.3);
+    letter-spacing: 0.02em;
 }
 
 .sectionHeader span {
@@ -1398,12 +1315,11 @@
 
 .warningHeader {
     color: #ff9f43;
-    text-shadow: 0 0 5px rgba(255, 159, 67, 0.3);
 }
 
 .sectionText {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--color-on-surface-variant);
     line-height: 1.5;
     margin: 0;
 }
@@ -1415,9 +1331,10 @@
 }
 
 .detailStatCard {
-    background: rgba(0, 209, 255, 0.05);
-    border: 1px solid rgba(0, 209, 255, 0.15);
-    padding: var(--spacing-stack-sm);
+    background: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 12px;
+    padding: 16px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -1426,17 +1343,17 @@
 
 .statLabel {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--color-on-surface-variant);
     font-weight: 700;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .statVal {
     font-family: var(--font-display);
     font-size: 18px;
     font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    color: var(--color-on-surface);
 }
 
 .videoLinkBtn {
@@ -1446,20 +1363,19 @@
     gap: 8px;
     width: 100%;
     padding: 12px;
-    background: linear-gradient(135deg, rgba(0, 209, 255, 0.2) 0%, rgba(0, 100, 255, 0.2) 100%);
-    border: 1px solid rgba(0, 209, 255, 0.4);
-    color: #fff;
+    background: var(--color-on-surface);
+    border: none;
+    color: var(--color-surface);
     font-family: var(--font-display);
     font-weight: 700;
     text-decoration: none;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s ease;
+    border-radius: 8px;
 }
 
 .videoLinkBtn:hover {
-    background: linear-gradient(135deg, rgba(0, 209, 255, 0.4) 0%, rgba(0, 100, 255, 0.4) 100%);
-    border-color: rgba(0, 209, 255, 0.8);
-    box-shadow: 0 0 15px rgba(0, 209, 255, 0.4);
+    opacity: 0.9;
 }

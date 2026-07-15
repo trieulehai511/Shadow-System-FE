@@ -366,3 +366,127 @@
     }
 }
 
+/* Header Penalty Timer Widget */
+.headerTimerGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.timerWrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
+}
+
+.timerIcon {
+    font-size: 18px;
+}
+
+.timerText {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* Danger state (not completed) */
+.timerDanger .timerWrapper {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.timerDanger .infoTriggerBtn {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.timerDanger .tooltipTitle {
+    color: #ef4444;
+}
+
+/* Safe state (completed) */
+.timerSafe .timerWrapper {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+.timerSafe .infoTriggerBtn {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.timerSafe .tooltipTitle {
+    color: #10b981;
+}
+
+.penaltyInfoWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.infoTriggerBtn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.infoTriggerBtn span {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.infoTriggerBtn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.penaltyTooltip {
+    position: absolute;
+    top: 130%;
+    right: 0;
+    width: 260px;
+    background-color: var(--color-surface-container);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 100;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
+    text-align: left;
+}
+
+.tooltipTitle {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.tooltipDesc {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+}
+
+.tooltipDesc strong {
+    color: var(--color-on-surface);
+}
+

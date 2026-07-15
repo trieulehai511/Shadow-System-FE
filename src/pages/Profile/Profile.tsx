@@ -49,9 +49,23 @@ export default function Profile() {
     
     const navigate = useNavigate();
 
+    const getRankClass = (tier: string = '') => {
+        const firstLetter = tier.trim().toUpperCase()[0];
+        switch (firstLetter) {
+            case 'S': return styles.rankS;
+            case 'A': return styles.rankA;
+            case 'B': return styles.rankB;
+            case 'C': return styles.rankC;
+            case 'D': return styles.rankD;
+            case 'E':
+            default:
+                return styles.rankE;
+        }
+    };
+
     const fetchProfile = async (): Promise<void> => {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             if (!token) {
                 navigate('/login');
                 return;
@@ -191,7 +205,7 @@ export default function Profile() {
                             <span className={styles.statLabel}>Best</span>
                         </div>
                         <div className={styles.statItem}>
-                            <span className={`${styles.statValue} ${styles.rankValue}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
+                            <span className={`${styles.statValue} ${styles.rankValue} ${getRankClass(profile.rankTier)}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
                             <span className={styles.statLabel}>Rank</span>
                         </div>
                     </div>

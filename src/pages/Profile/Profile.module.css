@@ -102,9 +102,15 @@
 }
 
 .rankValue {
-    color: var(--color-primary);
-    text-shadow: 0 0 15px rgba(0, 209, 255, 0.3);
+    font-weight: 800;
 }
+
+.rankS { color: #d8b4fe !important; text-shadow: 0 0 15px rgba(168, 85, 247, 0.5) !important; }
+.rankA { color: #fca5a5 !important; text-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important; }
+.rankB { color: #fde047 !important; text-shadow: 0 0 15px rgba(245, 158, 11, 0.5) !important; }
+.rankC { color: #6ee7b7 !important; text-shadow: 0 0 15px rgba(16, 185, 129, 0.5) !important; }
+.rankD { color: #93c5fd !important; text-shadow: 0 0 15px rgba(59, 130, 246, 0.5) !important; }
+.rankE { color: #ffffff !important; text-shadow: 0 0 15px rgba(255, 255, 255, 0.4) !important; }
 
 .statLabel {
     color: var(--color-on-surface-variant);
