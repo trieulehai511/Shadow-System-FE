@@ -1160,8 +1160,8 @@
 }
 
 @media (max-width: 768px) {
-    .sideColumn {
-        grid-template-columns: 1fr;
+    .dashboardCanvas {
+        padding: 1.5rem 0;
     }
 }
 

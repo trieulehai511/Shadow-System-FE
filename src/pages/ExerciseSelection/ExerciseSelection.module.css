@@ -847,3 +847,9 @@
 .corner, .scanline {
     display: none !important;
 }
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1.5rem 0;
+    }
+}

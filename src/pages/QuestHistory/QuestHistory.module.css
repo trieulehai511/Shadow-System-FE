@@ -197,3 +197,12 @@
     font-size: 16px;
     margin: 0;
 }
+
+@media (max-width: 768px) {
+    .historyCanvas {
+        padding: 1.5rem 0;
+    }
+    .logCard {
+        padding: 14px;
+    }
+}

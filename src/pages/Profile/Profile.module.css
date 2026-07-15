@@ -229,6 +229,10 @@
 }
 
 @media (max-width: 768px) {
+    .profileCanvas {
+        padding: 1.5rem 0;
+    }
+
     .profileTopContainer {
         flex-direction: column;
         gap: 20px;
@@ -247,11 +251,34 @@
     .infoRowTwo {
         gap: 20px;
         justify-content: space-between;
-        max-width: 300px;
+        max-width: 320px;
     }
 
     .attributesGrid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .attrCard {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .attrIconWrapper {
+        width: 38px;
+        height: 38px;
+    }
+
+    .attrIconWrapper span {
+        font-size: 20px;
+    }
+
+    .attrValue {
+        font-size: 20px;
+    }
+
+    .attrName {
+        font-size: 11px;
     }
 
     .recordsGrid {
