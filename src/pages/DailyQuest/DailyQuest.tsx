@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest } from '../../services/api';
@@ -20,6 +20,28 @@ export default function DailyQuest() {
     const [penaltyTime, setPenaltyTime] = useState<string>("11:42:09");
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
     const navigate = useNavigate();
+    
+    // Ref to preserve the initial order of quest items
+    const initialOrderRef = useRef<string[]>([]);
+
+    // Helper: sort quest items to match initial order
+    const sortByInitialOrder = useCallback((response: DailyQuestResponse): DailyQuestResponse => {
+        // If we don't have an initial order yet, establish it
+        if (initialOrderRef.current.length === 0) {
+            initialOrderRef.current = response.questItems.map(item => item.id);
+            return response;
+        }
+        
+        // Sort items to match the initial order
+        const orderMap = new Map(initialOrderRef.current.map((id, index) => [id, index]));
+        const sortedItems = [...response.questItems].sort((a, b) => {
+            const orderA = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+            const orderB = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+            return orderA - orderB;
+        });
+        
+        return { ...response, questItems: sortedItems };
+    }, []);
 
     type QuestLogItem = {
         id: string;
@@ -52,7 +74,7 @@ export default function DailyQuest() {
                 const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${usernameParam}`);
 
                 if (data.result) {
-                    setQuestData(data.result);
+                    setQuestData(sortByInitialOrder(data.result));
                 }
 
                 // 2. Fetch Quest Logs from the new API
@@ -100,7 +122,7 @@ export default function DailyQuest() {
             });
 
             if (data.result) {
-                setQuestData(data.result);
+                setQuestData(sortByInitialOrder(data.result));
                 // Refresh Logs after completion
                 const decoded = jwtDecode<TokenPayload>(token || '');
                 const usernameParam = decoded.sub;
