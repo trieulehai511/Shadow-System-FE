@@ -142,15 +142,9 @@ export default function Login() {
                                     Login
                                 </button>
 
-                                <div className={styles.divider}>
-                                    <span>OR</span>
+                                <div className={styles.footerLink}>
+                                    New Hunter? <Link to="/register">Sign Up</Link>
                                 </div>
-                                <Link className={styles.link_wrapper} to="/register">
-                                    <button className={styles.registerButton} type="button">
-                                        <span className="material-symbols-outlined">person_add</span>
-                                        Sign Up as Hunter
-                                    </button>
-                                </Link>
                             </div>
                         </form>
                     </div>

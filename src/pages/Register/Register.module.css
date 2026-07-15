@@ -23,6 +23,7 @@
     border-right: 1px solid var(--color-outline-variant);
     z-index: 10;
     transition: all 0.3s ease;
+    overflow-y: auto;
 }
 
 .artworkBackground {
@@ -83,7 +84,7 @@
 /* Header Section */
 .brandBlock {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 32px;
 }
 
 .brandIcon {
@@ -113,7 +114,7 @@
     opacity: 0.7;
 }
 
-/* Login Card */
+/* Register Card */
 .loginBox {
     position: relative;
     background: transparent;
@@ -129,7 +130,7 @@
 .form {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
 }
 
 .inputGroup {

@@ -149,119 +149,104 @@ export default function Profile() {
 
     return (
         <div className={styles.profileCanvas}>
-            <div className={styles.profileHeader}>
-                <div className={styles.editHeaderRow}>
-                    <div className={styles.titleWrapper}>
-                        <span className="material-symbols-outlined">person</span>
-                        <h1 className={styles.title}>Hunter Status</h1>
-                    </div>
-                    <button 
-                        className={styles.editBtn}
-                        onClick={() => {
-                            setFullName(profile.fullName || '');
-                            setAge(profile.age || 16);
-                            setAvatarPreview(profile.avatar || '');
-                            setAvatarFile(null);
-                            setErrorMsg('');
-                            setEditMode(true);
-                        }}
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
-                        Edit Profile
-                    </button>
+            {/* TOP SECTION: INSTAGRAM STYLE HEADER */}
+            <div className={styles.profileTopContainer}>
+                <div className={styles.avatarSection}>
+                    <img 
+                        className={styles.profileAvatar} 
+                        src={getAvatarUrl(profile.avatar)} 
+                        alt="Hunter Avatar" 
+                    />
                 </div>
-                <p className={styles.subtitle}>Detailed Information of the Awakened Being</p>
+                
+                <div className={styles.profileInfoSection}>
+                    <div className={styles.infoRowOne}>
+                        <h2 className={styles.userName}>{profile.userName}</h2>
+                        <button 
+                            className={styles.editBtn}
+                            onClick={() => {
+                                setFullName(profile.fullName || '');
+                                setAge(profile.age || 16);
+                                setAvatarPreview(profile.avatar || '');
+                                setAvatarFile(null);
+                                setErrorMsg('');
+                                setEditMode(true);
+                            }}
+                        >
+                            Edit Profile
+                        </button>
+                    </div>
+                    
+                    <div className={styles.infoRowTwo}>
+                        <div className={styles.statItem}>
+                            <span className={styles.statValue}>{profile.currentRp}</span>
+                            <span className={styles.statLabel}>RP</span>
+                        </div>
+                        <div className={styles.statItem}>
+                            <span className={styles.statValue}>{profile.currentStreak}</span>
+                            <span className={styles.statLabel}>Streak</span>
+                        </div>
+                        <div className={styles.statItem}>
+                            <span className={styles.statValue}>{profile.maxStreak}</span>
+                            <span className={styles.statLabel}>Best</span>
+                        </div>
+                        <div className={styles.statItem}>
+                            <span className={`${styles.statValue} ${styles.rankValue}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
+                            <span className={styles.statLabel}>Rank</span>
+                        </div>
+                    </div>
+                    
+                    <div className={styles.infoRowThree}>
+                        <h3 className={styles.fullName}>{profile.fullName}</h3>
+                        <p className={styles.bioText}>Awakened Hunter • Age: {profile.age}</p>
+                        <p className={styles.hunterCodeText}>ID: {profile.hunterCode}</p>
+                    </div>
+                </div>
             </div>
 
-            <div className={styles.bentoGrid}>
-                {/* Profile Overview Card */}
-                <section className={styles.overviewCard}>
-                    <div className={styles.glowDecoration}></div>
-                    <div className={styles.avatarBigWrapper}>
-                        <img 
-                            className={styles.avatarBig} 
-                            alt="Hunter Avatar" 
-                            src={getAvatarUrl(profile.avatar)}
-                        />
-                    </div>
-                    <div className={styles.metaColumn}>
-                        <h2 className={styles.hunterName}>{profile.fullName} ({profile.userName})</h2>
-                        <span className={styles.titleBadge}>Active Hunter (Age: {profile.age || 'Awakened'})</span>
-                        <div className={styles.levelGroup}>
-                            <span className={styles.levelLabel}>Rank:</span>
-                            <span className={styles.rankText}>{profile.rankTier?.replace('_', ' ') || 'E RANK'}</span>
-                        </div>
-                    </div>
-                </section>
+            <div className={styles.profileDivider}></div>
 
-                {/* Level Progress Bento Panel */}
-                <section className={styles.xpCard}>
-                    <h3 className={styles.panelTitle}>Hunter Record Metrics</h3>
-                    <div className={styles.currencyRow} style={{ borderTop: 'none', paddingTop: 0, marginTop: 0 }}>
-                        <div className={styles.currencyCell}>
-                            <span className="material-symbols-outlined">fingerprint</span>
-                            <div>
-                                <p>HUNTER CODE</p>
-                                <strong>{profile.hunterCode}</strong>
-                            </div>
+            {/* BOTTOM SECTION: ATTRIBUTES & STATS */}
+            <div className={styles.attributesSection}>
+                <h3 className={styles.sectionTitle}>Combat Attributes</h3>
+                <div className={styles.attributesGrid}>
+                    <div className={styles.attrCard}>
+                        <div className={styles.attrIconWrapper}>
+                            <span className="material-symbols-outlined">fitness_center</span>
                         </div>
-                        <div className={styles.currencyCell}>
-                            <span className="material-symbols-outlined">stars</span>
-                            <div>
-                                <p>CURRENT RP</p>
-                                <strong>{profile.currentRp} RP</strong>
-                            </div>
+                        <div className={styles.attrInfo}>
+                            <span className={styles.attrValue}>{profile.strength}</span>
+                            <span className={styles.attrName}>STR</span>
                         </div>
-                        <div className={styles.currencyCell}>
-                            <span className="material-symbols-outlined">local_fire_department</span>
-                            <div>
-                                <p>STREAK (CURRENT / MAX)</p>
-                                <strong>{profile.currentStreak} Days / {profile.maxStreak} Days</strong>
-                            </div>
+                    </div>
+                    <div className={styles.attrCard}>
+                        <div className={styles.attrIconWrapper}>
+                            <span className="material-symbols-outlined">directions_run</span>
                         </div>
-                        <div className={styles.currencyCell}>
+                        <div className={styles.attrInfo}>
+                            <span className={styles.attrValue}>{profile.agility}</span>
+                            <span className={styles.attrName}>AGI</span>
+                        </div>
+                    </div>
+                    <div className={styles.attrCard}>
+                        <div className={styles.attrIconWrapper}>
+                            <span className="material-symbols-outlined">favorite</span>
+                        </div>
+                        <div className={styles.attrInfo}>
+                            <span className={styles.attrValue}>{profile.vitality}</span>
+                            <span className={styles.attrName}>VIT</span>
+                        </div>
+                    </div>
+                    <div className={styles.attrCard}>
+                        <div className={styles.attrIconWrapper}>
                             <span className="material-symbols-outlined">shield</span>
-                            <div>
-                                <p>SHIELD COUNT</p>
-                                <strong>{profile.shieldCount} Active Shields</strong>
-                            </div>
+                        </div>
+                        <div className={styles.attrInfo}>
+                            <span className={styles.attrValue}>{profile.shieldCount}</span>
+                            <span className={styles.attrName}>Shields</span>
                         </div>
                     </div>
-                </section>
-
-                {/* Stats Bento Card */}
-                <section className={styles.statsCard}>
-                    <h3 className={styles.panelTitle}>
-                        <span className="material-symbols-outlined">query_stats</span>
-                        Ability Attributes
-                    </h3>
-                    <div className={styles.statsList}>
-                        <div className={styles.statRow}>
-                            <div className={styles.statNameCol}>
-                                <span className={styles.statLabel}>STRENGTH (STR)</span>
-                            </div>
-                            <div className={styles.statValCol}>
-                                <span className={styles.statValue}>{profile.strength}</span>
-                            </div>
-                        </div>
-                        <div className={styles.statRow}>
-                            <div className={styles.statNameCol}>
-                                <span className={styles.statLabel}>AGILITY (AGI)</span>
-                            </div>
-                            <div className={styles.statValCol}>
-                                <span className={styles.statValue}>{profile.agility}</span>
-                            </div>
-                        </div>
-                        <div className={styles.statRow}>
-                            <div className={styles.statNameCol}>
-                                <span className={styles.statLabel}>VITALITY (VIT)</span>
-                            </div>
-                            <div className={styles.statValCol}>
-                                <span className={styles.statValue}>{profile.vitality}</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                </div>
             </div>
 
             {/* EDIT PROFILE MODAL */}

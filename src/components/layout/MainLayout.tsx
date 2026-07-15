@@ -6,14 +6,14 @@ import styles from './MainLayout.module.css';
 
 type TokenPayload = {
     sub: string;
-    userName: string; 
+    userName: string;
 };
 
 export default function MainLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuVisible, setIsMobileMenuVisible] = useState<boolean>(true);
-    
+
     const [hunterName, setHunterName] = useState<string>("Sung Jin-Woo");
     const [avatar, setAvatar] = useState<string>("");
     const [rankTier, setRankTier] = useState<string>("E RANK");
@@ -88,110 +88,139 @@ export default function MainLayout() {
 
     return (
         <div className={styles.layoutContainer}>
-            {/* Ambient Overlays */}
+            {/* Ambient Overlays - extremely subtle */}
             <div className={styles.systemGrid} aria-hidden="true"></div>
-            <div className={styles.scanlines} aria-hidden="true"></div>
 
             <div className={styles.flexWrapper}>
-                {/* SIDENAVBAR (Desktop Only) */}
+                {/* SIDENAVBAR (Desktop Only) - Instagram Style Left Sidebar with Hover Reveal */}
                 <nav className={styles.sidenavbar}>
-                    {/* Header */}
+                    {/* Header Logo */}
                     <div className={styles.navHeader}>
-                        <div className={styles.avatarWrapper}>
-                            <img 
-                                className={styles.avatarImg} 
-                                alt="Hunter Avatar" 
-                                src={getAvatarUrl(avatar)}
-                            />
-                        </div>
-                        <h2 className={styles.navHunterName}>{hunterName}</h2>
-                        <span className={styles.navHunterRank}>{rankTier.replace('_', ' ')}</span>
+                        {/* <h1 className={styles.sidebarLogo}>SHADOW</h1> */}
                     </div>
 
                     {/* Nav Links */}
                     <ul className={styles.navLinks}>
                         <li>
-                            <Link 
-                                to="/daily-quest" 
+                            <Link
+                                to="/daily-quest"
                                 className={`${styles.navItem} ${location.pathname === '/daily-quest' ? styles.activeNavItem : ''}`}
                             >
                                 <span className={`material-symbols-outlined ${location.pathname === '/daily-quest' ? styles.fillIcon : ''}`}>
-                                    dashboard
+                                    home
                                 </span>
-                                <span>Dashboard</span>
+                                <span className={styles.navText}>Dashboard</span>
                             </Link>
                         </li>
                         <li>
-                            <Link 
-                                to="/exercises" 
+                            <Link
+                                to="/exercises"
                                 className={`${styles.navItem} ${location.pathname === '/exercises' ? styles.activeNavItem : ''}`}
                             >
                                 <span className={`material-symbols-outlined ${location.pathname === '/exercises' ? styles.fillIcon : ''}`}>
-                                    assignment
+                                    fitness_center
                                 </span>
-                                <span>Exercises</span>
+                                <span className={styles.navText}>Exercises</span>
                             </Link>
                         </li>
                         <li>
-                            <Link 
-                                to="/profile" 
-                                className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
-                            >
-                                <span className={`material-symbols-outlined ${location.pathname === '/profile' ? styles.fillIcon : ''}`}>
-                                    person
-                                </span>
-                                <span>Profile</span>
-                            </Link>
-                        </li>
-                        <li>
-                            <a href="#" className={styles.navItem}>
-                                <span className="material-symbols-outlined">military_tech</span>
-                                <span>Ranking</span>
-                            </a>
-                        </li>
-                        <li>
-                            <Link 
-                                to="/history" 
+                            <Link
+                                to="/history"
                                 className={`${styles.navItem} ${location.pathname === '/history' ? styles.activeNavItem : ''}`}
                             >
                                 <span className={`material-symbols-outlined ${location.pathname === '/history' ? styles.fillIcon : ''}`}>
                                     history
                                 </span>
-                                <span>History</span>
+                                <span className={styles.navText}>History</span>
                             </Link>
                         </li>
+                        {/* <li>
+                            
+                        </li> */}
                     </ul>
 
-                    {/* CTA & Footer */}
+                    {/* Footer Settings & Logout */}
                     <div className={styles.navFooter}>
-                        <button className={styles.levelUpBtn}>
-                            Level Up
+                        <button
+                            className={styles.navItem}
+                            onClick={() => navigate('/profile')}
+                        >
+                             <div className={styles.sidebarAvatarWrapper}>
+                                    <img
+                                        className={styles.sidebarAvatarImg}
+                                        alt="Hunter Avatar"
+                                        src={getAvatarUrl(avatar)}
+                                    />
+                                </div>
+                            <span className={styles.navText}>
+                                <Link
+                                to="/profile"
+                                className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
+                            >
+                               
+                                <span className={styles.navText}>Profile</span>
+                            </Link>
+                           
+                            </span>
                         </button>
-                        <div className={styles.navFooterLinks}>
-                            <a href="#" title="Settings" onClick={(e) => { e.preventDefault(); handleLogout(); }}>
-                                <span className="material-symbols-outlined">logout</span>
-                            </a>
-                            <a href="#" title="Support" onClick={(e) => e.preventDefault()}>
-                                <span className="material-symbols-outlined">help</span>
-                            </a>
-                        </div>
+
+                        <button
+                            className={styles.navItem}
+                            onClick={() => navigate('/profile')}
+                            title="Settings"
+                        >
+                            <span className="material-symbols-outlined">settings</span>
+                            <span className={styles.navText}>Settings</span>
+                        </button>
+                        <button
+                            className={styles.navItem}
+                            onClick={handleLogout}
+                            title="Log Out"
+                        >
+                            <span className="material-symbols-outlined">logout</span>
+                            <span className={styles.navText}>Log Out</span>
+                        </button>
                     </div>
                 </nav>
 
                 {/* MAIN CONTENT AREA */}
                 <div className={styles.mainWrapper}>
-                    {/* TOPAPPBAR */}
+                    {/* TOPAPPBAR (Instagram-style) */}
                     <header className={styles.topHeader}>
-                        <div className={styles.headerTitle}>
-                            System Interface
+                        <div>   </div>
+                        {/* Top Left: Settings */}
+                        {/* <div className={styles.headerLeft}>
+                            <button 
+                                className={styles.headerBtn} 
+                                title="Settings" 
+                                onClick={() => navigate('/profile')}
+                            >
+                                <span className="material-symbols-outlined">settings</span>
+                            </button>
+                        </div> */}
+
+                        {/* Top Center: Stylized Brand Name */}
+                        <div className={styles.headerTitle} onClick={() => navigate('/daily-quest')}>
+                            SHADOW SYSTEM
                         </div>
+
+                        {/* Top Right: Notifications + Logout + Avatar */}
                         <div className={styles.headerIcons}>
                             <button className={styles.headerBtn} title="Notifications">
                                 <span className="material-symbols-outlined">notifications</span>
                             </button>
-                            <button className={styles.headerBtn} title="Exit System" onClick={handleLogout}>
-                                <span className="material-symbols-outlined">logout</span>
-                            </button>
+
+                            <div
+                                className={styles.headerAvatarWrapper}
+                                onClick={() => navigate('/profile')}
+                                title="View Profile"
+                            >
+                                <img
+                                    className={styles.headerAvatarImg}
+                                    alt="Avatar"
+                                    src={getAvatarUrl(avatar)}
+                                />
+                            </div>
                         </div>
                     </header>
 
@@ -202,32 +231,26 @@ export default function MainLayout() {
                 </div>
             </div>
 
-            {/* BOTTOMNAVBAR (Mobile Only) - with auto hide/show state */}
+            {/* BOTTOMNAVBAR (Mobile Only) - auto hides on scroll down, very sleek */}
             <nav className={`${styles.bottomNavbar} ${isMobileMenuVisible ? '' : styles.bottomNavbarHidden}`}>
                 <Link to="/daily-quest" className={`${styles.mobileTab} ${location.pathname === '/daily-quest' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">home</span>
-                    <span>Home</span>
                 </Link>
                 <Link to="/exercises" className={`${styles.mobileTab} ${location.pathname === '/exercises' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">fitness_center</span>
-                    <span>Exercises</span>
+                </Link>
+                <Link to="/history" className={`${styles.mobileTab} ${location.pathname === '/history' ? styles.activeTab : ''}`}>
+                    <span className="material-symbols-outlined">history</span>
                 </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
-                    <span className="material-symbols-outlined">bar_chart</span>
-                    <span>Stats</span>
+                    <div className={`${styles.mobileAvatarWrapper} ${location.pathname === '/profile' ? styles.activeMobileAvatar : ''}`}>
+                        <img
+                            className={styles.mobileAvatarImg}
+                            alt="Avatar"
+                            src={getAvatarUrl(avatar)}
+                        />
+                    </div>
                 </Link>
-                <a href="#" className={styles.mobileTab} onClick={(e) => e.preventDefault()}>
-                    <span className="material-symbols-outlined">workspace_premium</span>
-                    <span>Rank</span>
-                </a>
-                <Link to="/history" className={`${styles.mobileTab} ${location.pathname === '/history' ? styles.activeTab : ''}`}>
-                    <span className="material-symbols-outlined">list_alt</span>
-                    <span>Logs</span>
-                </Link>
-                <a href="#" className={styles.mobileTab} onClick={handleLogout}>
-                    <span className="material-symbols-outlined">logout</span>
-                    <span>Exit</span>
-                </a>
             </nav>
         </div>
     );
