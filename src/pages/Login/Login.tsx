@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
 import styles from './Login.module.css';
-import loginBg from '../../assets/Untitled.jpeg';
+import loginBg from '../../assets/main_screen.png';
 
 type LoginApiResponse = {
     code: number;
@@ -14,8 +14,8 @@ type LoginApiResponse = {
 };
 
 export default function Login() {
-    const [username, setUsername] = useState<string>('trieule');
-    const [password, setPassword] = useState<string>('123456');
+    const [username, setUsername] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
     const [alertConfig, setAlertConfig] = useState<{
         message: string;
         type: 'success' | 'error' | 'info' | 'warning';
@@ -91,8 +91,8 @@ export default function Login() {
                         <span className={`material-symbols-outlined ${styles.brandIcon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                             sports_mma
                         </span>
-                        <h1 className={styles.title}>Awaken Your Potential</h1>
-                        <p className={styles.subtitle}>Initiate System Link</p>
+                        <h1 className={styles.title}>LOGIN</h1>
+                        {/* <p className={styles.subtitle}>Initiate System Link</p> */}
                     </div>
 
                     {/* Login Card */}
@@ -103,7 +103,7 @@ export default function Login() {
                         <form className={styles.form} onSubmit={handleLogin}>
                             {/* Email Input */}
                             <div className={styles.inputGroup}>
-                                <label htmlFor="email">Hunter ID / Email</label>
+                                <label htmlFor="email">USERNAME</label>
                                 <div className={styles.inputShell}>
                                     <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
                                         badge
@@ -121,7 +121,7 @@ export default function Login() {
                             {/* Password Input */}
                             <div className={styles.inputGroup}>
                                 <div className={styles.labelRow}>
-                                    <label htmlFor="password">Passcode</label>
+                                    <label htmlFor="password">PASSCODE</label>
                                     <button className={styles.recoverLink} type="button">Recover?</button>
                                 </div>
                                 <div className={styles.inputShell}>

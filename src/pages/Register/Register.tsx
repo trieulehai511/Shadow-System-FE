@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styles from './Register.module.css';
-import loginBg from '../../assets/Untitled.jpeg';
+import loginBg from '../../assets/main_screen.png';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
 
@@ -117,8 +117,8 @@ export default function Register() {
                         <span className={`material-symbols-outlined ${styles.brandIcon}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                             sports_mma
                         </span>
-                        <h1 className={styles.title}>Join the System</h1>
-                        <p className={styles.subtitle}>Initiate Registration Link</p>
+                        <h1 className={styles.title}>REGISTER</h1>
+                        {/* <p className={styles.subtitle}>Initiate Registration Link</p> */}
                     </div>
 
                     {/* Register Card */}
