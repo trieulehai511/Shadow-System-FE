@@ -38,6 +38,11 @@ export default function DailyQuest() {
     const [timerError, setTimerError] = useState<string | null>(null);
     const pingTickRef = useRef<number>(0);
     const navigate = useNavigate();
+
+    // New states for generating daily quest
+    const [hunterId, setHunterId] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const [actionError, setActionError] = useState<string | null>(null);
     
     // Ref to preserve the initial order of quest items
     const initialOrderRef = useRef<string[]>([]);
@@ -88,12 +93,21 @@ export default function DailyQuest() {
                 const decoded = jwtDecode<TokenPayload>(token);
                 const usernameParam = decoded.sub;
 
-                // 1. Fetch quest items
-                const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${usernameParam}`);
+                // Set hunterId directly from the JWT subject, which contains the hunter's UUID
+                setHunterId(usernameParam);
 
-                if (data.result) {
-                    setQuestData(sortByInitialOrder(data.result));
-                    window.dispatchEvent(new CustomEvent('questUpdated'));
+                // 1. Fetch quest items
+                try {
+                    const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${usernameParam}`);
+                    if (data.result) {
+                        setQuestData(sortByInitialOrder(data.result));
+                        window.dispatchEvent(new CustomEvent('questUpdated'));
+                    } else {
+                        setQuestData(null);
+                    }
+                } catch (questErr) {
+                    console.error("Lỗi đồng bộ dữ liệu nhiệm vụ hôm nay:", questErr);
+                    setQuestData(null);
                 }
 
                 // 2. Fetch Quest Logs from the new API
@@ -115,6 +129,45 @@ export default function DailyQuest() {
 
         fetchDailyQuest();
     }, [navigate, sortByInitialOrder]);
+
+    const handleGenerateQuest = async () => {
+        if (!hunterId) {
+            setActionError("Không tìm thấy mã số Thợ Săn của bản thể. Vui lòng tải lại trang.");
+            return;
+        }
+        setIsGenerating(true);
+        setActionError(null);
+        try {
+            const token = sessionStorage.getItem('token');
+            const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${hunterId}/generate`, {
+                method: 'POST'
+            });
+
+            if (data.result) {
+                setQuestData(sortByInitialOrder(data.result));
+                window.dispatchEvent(new CustomEvent('questUpdated'));
+                
+                // Refresh Quest Logs
+                try {
+                    const decoded = jwtDecode<TokenPayload>(token || '');
+                    const usernameParam = decoded.sub;
+                    const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
+                    if (logsData.result?.content) {
+                        setQuestLogs(logsData.result.content);
+                    }
+                } catch (logsErr) {
+                    console.error("Lỗi lấy nhật ký Quest Logs sau khi khởi tạo:", logsErr);
+                }
+            } else {
+                throw new Error("Không thể khởi tạo nhiệm vụ mới từ Hệ thống.");
+            }
+        } catch (err: any) {
+            console.error("Lỗi khởi tạo nhiệm vụ:", err);
+            setActionError(err.message || "Khởi tạo nhiệm vụ thất bại.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     const activeSessionRef = useRef<ActiveQuestSession | null>(null);
     useEffect(() => {
@@ -361,11 +414,11 @@ export default function DailyQuest() {
     }, [questData]);
 
     if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG ĐỒNG BỘ DỮ LIỆU HỆ THỐNG...</h3></div>;
-    if (!questData) return <div className={styles.centerLoading}><h3>❌ KHÔNG TÌM THẤY DỮ LIỆU NHIỆM VỤ.</h3></div>;
 
     // Calculate total completed items
-    const completedCount = questData.questItems.filter(item => item.completed).length;
-    const progressPercent = Math.round((completedCount / questData.questItems.length) * 100) || 0;
+    const completedCount = questData ? questData.questItems.filter(item => item.completed).length : 0;
+    const totalCount = questData ? questData.questItems.length : 0;
+    const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
     return (
         <div className={styles.dashboardCanvas}>
@@ -651,7 +704,7 @@ export default function DailyQuest() {
                     <div className={styles.xpProgressContainer}>
                         <div className={styles.xpTextRow}>
                             <span>EXP Progress</span>
-                            <span>{progressPercent}% ({completedCount} / {questData.questItems.length})</span>
+                            <span>{progressPercent}% ({completedCount} / {totalCount})</span>
                         </div>
                         <div className={styles.xpTrack}>
                             <div 
@@ -665,7 +718,7 @@ export default function DailyQuest() {
                 </section>
 
                 {/* DAILY QUEST: THE MAIN EVENT */}
-                <section className={`${styles.questSection} ${!questData.completed ? styles.animatePulse : ''}`}>
+                <section className={`${styles.questSection} ${(questData && !questData.completed) ? styles.animatePulse : ''}`}>
                     <div className={styles.gradientAccent} aria-hidden="true"></div>
                     
                     <div className={styles.questContent}>
@@ -678,57 +731,91 @@ export default function DailyQuest() {
                             <span className={`material-symbols-outlined ${styles.headerIcon}`}>fitness_center</span>
                         </div>
 
-                        {/* Exercise Items List */}
-                        <div className={styles.exercisesList}>
-                            {questData.questItems.map((item) => {
-                                const hasSavedSession = localStorage.getItem(`shadow_quest_session_${item.id}`) !== null;
-                                return (
-                                    <div 
-                                        key={item.id}
-                                        className={`${styles.exerciseItem} ${
-                                            item.completed ? styles.itemDone : styles.itemPending
-                                        }`}
-                                    >
-                                        <div className={styles.exerciseLeft}>
-                                            {item.completed ? (
-                                                <div className={styles.checkBoxCompleted}>
-                                                    <span className="material-symbols-outlined">check</span>
-                                                </div>
-                                            ) : (
-                                                <div className={styles.checkBoxPending} style={{ cursor: 'default' }}>
-                                                    <div className={styles.pendingDot}></div>
-                                                </div>
-                                            )}
-                                            <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
-                                                {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
-                                            </span>
-                                            <button 
-                                                className={styles.infoBtn}
-                                                onClick={() => setSelectedExerciseForModal(item)}
-                                                title="Xem chi tiết"
-                                            >
-                                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            {item.completed ? (
-                                                <span className={styles.exerciseActionButtonDone}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>verified</span>
-                                                    DONE
+                        {/* Exercise Items List or Empty State */}
+                        {!questData || !questData.questItems || questData.questItems.length === 0 ? (
+                            <div className={styles.emptyQuestContainer}>
+                                <div className={styles.emptyIconBox}>
+                                    <span className="material-symbols-outlined">hourglass_empty</span>
+                                </div>
+                                <h3 className={styles.emptyTitle}>HÔM NAY CHƯA CÓ BÀI TẬP</h3>
+                                <p className={styles.emptyDescription}>
+                                    {questData?.restDay 
+                                        ? "Hôm nay là ngày nghỉ. Muốn thử thách ngày nghỉ mới luôn không?" 
+                                        : "Thợ Săn mới! Hôm nay chưa có nhiệm vụ. Muốn thử thách ngay bây giờ không?"}
+                                </p>
+                                
+                                {actionError && <p className={styles.actionErrorText}>{actionError}</p>}
+                                
+                                <button 
+                                    className={styles.generateQuestBtn} 
+                                    onClick={handleGenerateQuest}
+                                    disabled={isGenerating || !hunterId}
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <span className={`material-symbols-outlined ${styles.spin}`}>sync</span>
+                                            ĐANG KHỞI TẠO CHỈ THỊ...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">bolt</span>
+                                            KHỞI TẠO NHIỆM VỤ HÔM NAY
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className={styles.exercisesList}>
+                                {questData.questItems.map((item) => {
+                                    const hasSavedSession = localStorage.getItem(`shadow_quest_session_${item.id}`) !== null;
+                                    return (
+                                        <div 
+                                            key={item.id}
+                                            className={`${styles.exerciseItem} ${
+                                                item.completed ? styles.itemDone : styles.itemPending
+                                            }`}
+                                        >
+                                            <div className={styles.exerciseLeft}>
+                                                {item.completed ? (
+                                                    <div className={styles.checkBoxCompleted}>
+                                                        <span className="material-symbols-outlined">check</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className={styles.checkBoxPending} style={{ cursor: 'default' }}>
+                                                        <div className={styles.pendingDot}></div>
+                                                    </div>
+                                                )}
+                                                <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
+                                                    {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
                                                 </span>
-                                            ) : (
                                                 <button 
-                                                    className={styles.exerciseActionButton}
-                                                    onClick={() => handleOpenWorkoutModal(item)}
+                                                    className={styles.infoBtn}
+                                                    onClick={() => setSelectedExerciseForModal(item)}
+                                                    title="Xem chi tiết"
                                                 >
-                                                    {hasSavedSession ? 'Tiếp tục' : 'Tập luyện'}
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
                                                 </button>
-                                            )}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                {item.completed ? (
+                                                    <span className={styles.exerciseActionButtonDone}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>verified</span>
+                                                        DONE
+                                                    </span>
+                                                ) : (
+                                                    <button 
+                                                        className={styles.exerciseActionButton}
+                                                        onClick={() => handleOpenWorkoutModal(item)}
+                                                    >
+                                                        {hasSavedSession ? 'Tiếp tục' : 'Tập luyện'}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </section>
 
