@@ -10,10 +10,10 @@ export interface SystemAlertProps {
 }
 
 export const SystemAlert: React.FC<SystemAlertProps> = ({
-    title = 'HỆ THỐNG THÔNG BÁO',
+    title = 'SYSTEM ALERT',
     message,
     type = 'info',
-    confirmText = 'XÁC NHẬN',
+    confirmText = 'CONFIRM',
     onClose
 }) => {
     // Dismiss on ESC key press
@@ -30,9 +30,9 @@ export const SystemAlert: React.FC<SystemAlertProps> = ({
     const getIcon = () => {
         switch (type) {
             case 'success':
-                return 'verified_user';
+                return 'check_circle';
             case 'error':
-                return 'gpp_bad';
+                return 'cancel';
             case 'warning':
                 return 'warning';
             case 'info':
@@ -47,15 +47,6 @@ export const SystemAlert: React.FC<SystemAlertProps> = ({
                 className={`${styles.container} ${styles[type]}`} 
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Cyberpunk corner brackets */}
-                <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                <div className={`${styles.corner} ${styles.topRight}`}></div>
-                <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-
-                {/* Scanline pattern overlay */}
-                <div className={styles.scanline}></div>
-
                 <div className={styles.content}>
                     <div className={styles.header}>
                         <span className={`material-symbols-outlined ${styles.icon}`}>
@@ -70,8 +61,7 @@ export const SystemAlert: React.FC<SystemAlertProps> = ({
 
                     <div className={styles.footer}>
                         <button className={styles.confirmBtn} onClick={onClose}>
-                            <span className={styles.btnText}>{confirmText}</span>
-                            <span className={styles.glitchGlow}></span>
+                            {confirmText}
                         </button>
                     </div>
                 </div>

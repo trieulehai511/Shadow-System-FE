@@ -7,7 +7,7 @@ import ExerciseSelection from './pages/ExerciseSelection/ExerciseSelection';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import Register from './pages/Register/Register';
-
+import Leaderboard from './pages/Leaderboard/Leaderboard';
 export default function App() {
     return (
         <BrowserRouter>
@@ -29,6 +29,7 @@ export default function App() {
                     <Route path="/daily-quest" element={<DailyQuest />} />
                     <Route path="/exercises" element={<ExerciseSelection />} />
                     <Route path="/history" element={<QuestHistory />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/profile" element={<Profile />} />
                 </Route>
 

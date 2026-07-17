@@ -37,7 +37,7 @@ export default function QuestHistory() {
     useEffect(() => {
         const fetchQuestLogs = async (): Promise<void> => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 if (!token) {
                     navigate('/login');
                     return;

@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://shadow-system-1086471329115.asia-southeast1.run.app/shadow-system';
 
 interface RequestOptions extends RequestInit {
     useMultipart?: boolean;
@@ -8,7 +8,7 @@ export async function apiRequest<T = any>(
     endpoint: string,
     options: RequestOptions = {}
 ): Promise<T> {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     
     const headers: Record<string, string> = {};
     if (token) {
@@ -34,7 +34,7 @@ export async function apiRequest<T = any>(
     });
 
     if (response.status === 401) {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         window.location.href = '/login';
         throw new Error('Unauthorized');
     }

@@ -27,6 +27,15 @@ type HunterProfile = {
     avatar?: string;
 };
 
+type AttributeName = 'strength' | 'agility' | 'vitality';
+type AttributeValues = Partial<Record<AttributeName, number>>;
+
+type AttributeReward = {
+    attributeGains: AttributeValues;
+    attributesAfter: AttributeValues;
+    claimedAt: number;
+};
+
 export default function Profile() {
     const [profile, setProfile] = useState<HunterProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -46,17 +55,31 @@ export default function Profile() {
         title?: string;
         onClose?: () => void;
     } | null>(null);
+    const [attributeReward, setAttributeReward] = useState<AttributeReward | null>(null);
     
     const navigate = useNavigate();
 
+    const getRankClass = (tier: string = '') => {
+        const firstLetter = tier.trim().toUpperCase()[0];
+        switch (firstLetter) {
+            case 'S': return styles.rankS;
+            case 'A': return styles.rankA;
+            case 'B': return styles.rankB;
+            case 'C': return styles.rankC;
+            case 'D': return styles.rankD;
+            case 'E':
+            default:
+                return styles.rankE;
+        }
+    };
+
     const fetchProfile = async (): Promise<void> => {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             if (!token) {
                 navigate('/login');
                 return;
-            }
-
+}
             const data = await apiRequest('/auth/me');
             const profileData = data.result ? data.result : data;
 
@@ -65,6 +88,22 @@ export default function Profile() {
                 setFullName(profileData.fullName || '');
                 setAge(profileData.age || 16);
                 setAvatarPreview(profileData.avatar || '');
+
+                const storedReward = sessionStorage.getItem('shadow_system_strength_reward');
+                if (storedReward) {
+                    try {
+                        const reward = JSON.parse(storedReward) as AttributeReward;
+                        const rewardMatchesProfile = (['strength', 'agility', 'vitality'] as AttributeName[]).every(
+                            (attribute) => reward.attributesAfter[attribute] === undefined || profileData[attribute] === reward.attributesAfter[attribute]
+                        );
+                        if (rewardMatchesProfile) {
+                            setAttributeReward(reward);
+                            sessionStorage.removeItem('shadow_system_strength_reward');
+                        }
+                    } catch {
+                        sessionStorage.removeItem('shadow_system_strength_reward');
+                    }
+                }
             }
         } catch (error: any) {
             console.error("Lỗi đồng bộ dữ liệu hồ sơ từ API:", error);
@@ -191,7 +230,7 @@ export default function Profile() {
                             <span className={styles.statLabel}>Best</span>
                         </div>
                         <div className={styles.statItem}>
-                            <span className={`${styles.statValue} ${styles.rankValue}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
+                            <span className={`${styles.statValue} ${styles.rankValue} ${getRankClass(profile.rankTier)}`}>{profile.rankTier?.replace('_', ' ') || 'E'}</span>
                             <span className={styles.statLabel}>Rank</span>
                         </div>
                     </div>
@@ -210,7 +249,7 @@ export default function Profile() {
             <div className={styles.attributesSection}>
                 <h3 className={styles.sectionTitle}>Combat Attributes</h3>
                 <div className={styles.attributesGrid}>
-                    <div className={styles.attrCard}>
+                    <div className={`${styles.attrCard} ${attributeReward ? styles.strengthBuffed : ''}`}>
                         <div className={styles.attrIconWrapper}>
                             <span className="material-symbols-outlined">fitness_center</span>
                         </div>
@@ -218,8 +257,18 @@ export default function Profile() {
                             <span className={styles.attrValue}>{profile.strength}</span>
                             <span className={styles.attrName}>STR</span>
                         </div>
+                        {attributeReward && (
+                            <div className={styles.strengthBuffNotice} role="status">
+                                <span className="material-symbols-outlined">arrow_upward</span>
+                                <span>
+                                    {typeof attributeReward.attributeGains.strength === 'number' && attributeReward.attributeGains.strength > 0
+                                        ? `+${attributeReward.attributeGains.strength} STR`
+                                        : 'BUFF GHI NHẬN'}
+                                </span>
+                            </div>
+                        )}
                     </div>
-                    <div className={styles.attrCard}>
+                    <div className={`${styles.attrCard} ${attributeReward ? styles.strengthBuffed : ''}`}>
                         <div className={styles.attrIconWrapper}>
                             <span className="material-symbols-outlined">directions_run</span>
                         </div>
@@ -227,8 +276,14 @@ export default function Profile() {
                             <span className={styles.attrValue}>{profile.agility}</span>
                             <span className={styles.attrName}>AGI</span>
                         </div>
+                        {attributeReward && (
+                            <div className={styles.strengthBuffNotice} role="status">
+                                <span className="material-symbols-outlined">arrow_upward</span>
+                                <span>{typeof attributeReward.attributeGains.agility === 'number' && attributeReward.attributeGains.agility > 0 ? `+${attributeReward.attributeGains.agility} AGI` : 'BUFF GHI NHẬN'}</span>
+                            </div>
+                        )}
                     </div>
-                    <div className={styles.attrCard}>
+                    <div className={`${styles.attrCard} ${attributeReward ? styles.strengthBuffed : ''}`}>
                         <div className={styles.attrIconWrapper}>
                             <span className="material-symbols-outlined">favorite</span>
                         </div>
@@ -236,6 +291,12 @@ export default function Profile() {
                             <span className={styles.attrValue}>{profile.vitality}</span>
                             <span className={styles.attrName}>VIT</span>
                         </div>
+                        {attributeReward && (
+                            <div className={styles.strengthBuffNotice} role="status">
+                                <span className="material-symbols-outlined">arrow_upward</span>
+                                <span>{typeof attributeReward.attributeGains.vitality === 'number' && attributeReward.attributeGains.vitality > 0 ? `+${attributeReward.attributeGains.vitality} VIT` : 'BUFF GHI NHẬN'}</span>
+                            </div>
+                        )}
                     </div>
                     <div className={styles.attrCard}>
                         <div className={styles.attrIconWrapper}>
@@ -354,4 +415,3 @@ export default function Profile() {
         </div>
     );
 }
-
