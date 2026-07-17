@@ -15,6 +15,29 @@ type DailyQuestApiResponse = {
     result?: DailyQuestResponse;
 };
 
+type AttributeName = 'strength' | 'agility' | 'vitality';
+type AttributeValues = Partial<Record<AttributeName, number>>;
+
+type HunterAttributesResponse = {
+    result?: AttributeValues;
+} & AttributeValues;
+
+const ATTRIBUTE_NAMES: AttributeName[] = ['strength', 'agility', 'vitality'];
+const ATTRIBUTE_LABELS: Record<AttributeName, string> = {
+    strength: 'STR',
+    agility: 'AGI',
+    vitality: 'VIT',
+};
+
+const getAttributes = (response: HunterAttributesResponse): AttributeValues => {
+    const profile = response.result ?? response;
+    return Object.fromEntries(
+        ATTRIBUTE_NAMES
+            .filter((attribute) => typeof profile[attribute] === 'number')
+            .map((attribute) => [attribute, profile[attribute]])
+    ) as AttributeValues;
+};
+
 const SYSTEM_BRIEFINGS = [
     'Bản thể đã được đánh thức. Chỉ thị hôm nay đang chờ; sự trì hoãn sẽ được Hệ Thống ghi nhớ.',
     'Đừng nhầm sự thoải mái với an toàn. Kẻ chọn nghỉ ngơi sẽ sớm trở thành thứ bị bỏ lại.',
@@ -58,7 +81,11 @@ export default function DailyQuest() {
     const [selectedPace, setSelectedPace] = useState<'STRONG' | 'AVERAGE' | 'WEAK'>('AVERAGE');
     const [timerError, setTimerError] = useState<string | null>(null);
     const [entryBriefing, setEntryBriefing] = useState<string | null>(null);
-    const [completionReward, setCompletionReward] = useState<{ message: string; questCleared: boolean } | null>(null);
+    const [completionReward, setCompletionReward] = useState<{
+        message: string;
+        questCleared: boolean;
+        attributeGains: AttributeValues;
+    } | null>(null);
     const pingTickRef = useRef<number>(0);
     const pingInFlightRef = useRef<boolean>(false);
     const navigate = useNavigate();
@@ -427,6 +454,15 @@ export default function DailyQuest() {
         try {
             setTimerError(null);
             const token = sessionStorage.getItem('token');
+            const isFinalQuestItem = Boolean(
+                questData && questData.questItems.every((item) => item.id === itemId || item.completed)
+            );
+            let attributesBefore: AttributeValues = {};
+
+            if (isFinalQuestItem) {
+                const profileBefore: HunterAttributesResponse = await apiRequest('/auth/me');
+                attributesBefore = getAttributes(profileBefore);
+            }
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/item/${itemId}/complete`, {
                 method: 'PATCH'
             });
@@ -442,10 +478,34 @@ export default function DailyQuest() {
                 // Update local state
                 setQuestData(sortByInitialOrder(data.result));
                 window.dispatchEvent(new CustomEvent('questUpdated'));
-                setCompletionReward({
-                    message: pickSystemMessage(STRENGTH_MESSAGES),
-                    questCleared: Boolean(data.result.completed)
-                });
+
+                let attributeGains: AttributeValues = {};
+                if (data.result.completed) {
+                    const profileAfter: HunterAttributesResponse = await apiRequest('/auth/me');
+                    const attributesAfter = getAttributes(profileAfter);
+
+                    attributeGains = Object.fromEntries(
+                        ATTRIBUTE_NAMES
+                            .filter((attribute) => typeof attributesBefore[attribute] === 'number' && typeof attributesAfter[attribute] === 'number')
+                            .map((attribute) => [attribute, Math.max(0, attributesAfter[attribute]! - attributesBefore[attribute]!)]),
+                    ) as AttributeValues;
+
+                    if (ATTRIBUTE_NAMES.some((attribute) => typeof attributesAfter[attribute] === 'number')) {
+                        sessionStorage.setItem('shadow_system_strength_reward', JSON.stringify({
+                            attributeGains,
+                            attributesAfter,
+                            claimedAt: Date.now(),
+                        }));
+                    }
+                    window.dispatchEvent(new Event('profileUpdated'));
+                }
+                if (data.result.completed) {
+                    setCompletionReward({
+                        message: pickSystemMessage(STRENGTH_MESSAGES),
+                        questCleared: true,
+                        attributeGains,
+                    });
+                }
 
                 // Refresh Quest Logs
                 const decoded = jwtDecode<TokenPayload>(token || '');
@@ -495,16 +555,42 @@ export default function DailyQuest() {
                             {completionReward.questCleared ? 'NHIỆM VỤ HOÀN TẤT' : 'SỨC MẠNH TĂNG LÊN'}
                         </h2>
                         <div className={styles.rewardDivider} aria-hidden="true"></div>
+                        {completionReward.questCleared && ATTRIBUTE_NAMES.some((attribute) => typeof completionReward.attributeGains[attribute] === 'number') && (
+                            <div className={styles.attributeRewards}>
+                                {ATTRIBUTE_NAMES.map((attribute) => typeof completionReward.attributeGains[attribute] === 'number' && (
+                                    <div className={styles.strengthReward} key={attribute}>
+                                        <span className="material-symbols-outlined">
+                                            {attribute === 'strength' ? 'fitness_center' : attribute === 'agility' ? 'directions_run' : 'favorite'}
+                                        </span>
+                                        <span>{ATTRIBUTE_LABELS[attribute]}</span>
+                                        <strong>+{completionReward.attributeGains[attribute]}</strong>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <p className={styles.levelUpSubtitle}>{completionReward.message}</p>
                         {completionReward.questCleared && (
                             <p className={styles.questClearNote}>Toàn bộ chỉ thị hôm nay đã được hoàn thành.</p>
                         )}
-                        <button 
-                            className={styles.levelUpBtn} 
-                            onClick={() => setCompletionReward(null)}
-                        >
-                            XÁC NHẬN
-                        </button>
+                        <div className={styles.rewardActions}>
+                            {completionReward.questCleared && (
+                                <button
+                                    className={styles.viewProfileBtn}
+                                    onClick={() => {
+                                        setCompletionReward(null);
+                                        navigate('/profile');
+                                    }}
+                                >
+                                    XEM CHỈ SỐ
+                                </button>
+                            )}
+                            <button
+                                className={styles.levelUpBtn}
+                                onClick={() => setCompletionReward(null)}
+                            >
+                                XÁC NHẬN
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

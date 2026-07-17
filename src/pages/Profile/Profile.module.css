@@ -189,11 +189,59 @@
     align-items: center;
     gap: 16px;
     transition: transform 0.2s ease, border-color 0.2s ease;
+    position: relative;
 }
 
 .attrCard:hover {
     transform: translateY(-2px);
     border-color: var(--color-on-surface-variant);
+}
+
+.strengthBuffed {
+    border-color: var(--color-primary);
+    background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.19), transparent 74%), var(--color-surface-container);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.2);
+    animation: strengthCardCharge 1.1s ease-out both;
+}
+
+@keyframes strengthCardCharge {
+    0% { transform: scale(0.96); filter: brightness(1.7); }
+    55% { transform: scale(1.035); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.strengthBuffed .attrValue {
+    color: var(--color-primary);
+    text-shadow: 0 0 14px rgba(125, 211, 252, 0.8);
+}
+
+.strengthBuffNotice {
+    position: absolute;
+    top: -12px;
+    right: -8px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 7px;
+    border: 1px solid rgba(125, 211, 252, 0.75);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    animation: buffNoticeFloat 0.7s ease-out both;
+}
+
+.strengthBuffNotice span:first-child {
+    font-size: 13px;
+}
+
+@keyframes buffNoticeFloat {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .attrIconWrapper {
@@ -535,4 +583,3 @@
     font-size: 13px;
     margin-top: 4px;
 }
-

@@ -473,6 +473,52 @@
     z-index: 1;
 }
 
+.strengthReward {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding: 10px 16px;
+    border: 1px solid rgba(125, 211, 252, 0.6);
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    animation: strengthRewardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.attributeRewards {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.attributeRewards .strengthReward {
+    margin: 0;
+}
+
+.strengthReward strong {
+    font-size: 20px;
+    text-shadow: 0 0 14px rgba(125, 211, 252, 0.95);
+}
+
+.strengthReward span:first-child {
+    font-size: 18px;
+}
+
+@keyframes strengthRewardPop {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 .questClearNote {
     position: relative;
     z-index: 1;
@@ -503,6 +549,36 @@
 .levelUpBtn:hover {
     opacity: 0.9;
     box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+}
+
+.rewardActions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    width: 100%;
+    gap: 10px;
+}
+
+.rewardActions .levelUpBtn {
+    flex: 1;
+}
+
+.viewProfileBtn {
+    flex: 1;
+    padding: 14px;
+    border: 1px solid rgba(125, 211, 252, 0.65);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+}
+
+.viewProfileBtn:hover {
+    background: rgba(56, 189, 248, 0.1);
 }
 
 /* Side Info Column */
