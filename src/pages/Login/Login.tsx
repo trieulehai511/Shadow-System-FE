@@ -46,9 +46,12 @@ export default function Login() {
 
             if (data.code === 200 && data.result?.authenticated) {
                 sessionStorage.setItem('token', data.result.token);
+                // DailyQuest consumes this flag after the protected area has loaded.
+                // Keeping it in session storage makes the system briefing appear once per login.
+                sessionStorage.setItem('shadow_system_entry_pending', 'true');
                 setAlertConfig({
                     title: "HỆ THỐNG XÁC THỰC",
-                    message: "Hệ thống xác nhận bản thể thành công!",
+                    message: "Liên kết hoàn tất. Hệ Thống đã mở mắt—đừng khiến nó thất vọng.",
                     type: "success",
                     onClose: () => {
                         navigate('/daily-quest');
@@ -166,4 +169,3 @@ export default function Login() {
         </div>
     );
 }
-

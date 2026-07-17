@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest } from '../../services/api';
+import { SystemAlert } from '../../components/SystemAlert';
 import styles from './DailyQuest.module.css';
 import type { DailyQuestResponse, QuestItem } from '../../models/QuestModel';
 
@@ -13,6 +14,25 @@ type TokenPayload = {
 type DailyQuestApiResponse = {
     result?: DailyQuestResponse;
 };
+
+const SYSTEM_BRIEFINGS = [
+    'Bản thể đã được đánh thức. Chỉ thị hôm nay đang chờ; sự trì hoãn sẽ được Hệ Thống ghi nhớ.',
+    'Đừng nhầm sự thoải mái với an toàn. Kẻ chọn nghỉ ngơi sẽ sớm trở thành thứ bị bỏ lại.',
+    'Hệ Thống không quan tâm đến lý do của ngươi. Hoàn thành chỉ thị, hoặc chấp nhận mình vẫn yếu đuối.',
+    'Ngày mới đã bắt đầu. Hãy chứng minh ngươi xứng đáng tiếp tục tồn tại trong cuộc sàng lọc này.',
+    'Mọi hành động đều được ghi nhận. Đặc biệt là khoảnh khắc ngươi định quay lưng với nhiệm vụ.'
+];
+
+const STRENGTH_MESSAGES = [
+    'Có vẻ ngươi mạnh hơn hôm qua một chút. Đừng tự mãn—mức này vẫn chưa đủ để sống sót.',
+    'Nỗ lực đã được ghi nhận. Sức mạnh tăng nhẹ. Tỷ lệ trở thành kẻ bị săn: vẫn không thay đổi.',
+    'Cơ thể ngươi đã phản hồi. Cuối cùng cũng có dấu hiệu nó chưa hoàn toàn vô dụng.',
+    'Một giới hạn nhỏ đã bị nghiền nát. Phía trước vẫn còn vô số giới hạn đang chờ nghiền nát ngươi.',
+    'Tiến bộ được chấp nhận. Hệ Thống sẽ tạm thời hoãn đánh giá ngươi là một thất bại.',
+    'Ngươi đã sống sót qua thêm một chỉ thị. Đừng hiểu lầm: đó chưa phải là chiến thắng.'
+];
+
+const pickSystemMessage = (messages: string[]) => messages[Math.floor(Math.random() * messages.length)];
 
 interface ActiveQuestSession {
     itemId: string;
@@ -36,6 +56,8 @@ export default function DailyQuest() {
     const [activeSession, setActiveSession] = useState<ActiveQuestSession | null>(null);
     const [selectedPace, setSelectedPace] = useState<'STRONG' | 'AVERAGE' | 'WEAK'>('AVERAGE');
     const [timerError, setTimerError] = useState<string | null>(null);
+    const [entryBriefing, setEntryBriefing] = useState<string | null>(null);
+    const [completionReward, setCompletionReward] = useState<{ message: string; questCleared: boolean } | null>(null);
     const pingTickRef = useRef<number>(0);
     const navigate = useNavigate();
 
@@ -129,6 +151,13 @@ export default function DailyQuest() {
 
         fetchDailyQuest();
     }, [navigate, sortByInitialOrder]);
+
+    useEffect(() => {
+        if (loading || sessionStorage.getItem('shadow_system_entry_pending') !== 'true') return;
+
+        sessionStorage.removeItem('shadow_system_entry_pending');
+        setEntryBriefing(pickSystemMessage(SYSTEM_BRIEFINGS));
+    }, [loading]);
 
     const handleGenerateQuest = async () => {
         if (!hunterId) {
@@ -388,6 +417,10 @@ export default function DailyQuest() {
                 // Update local state
                 setQuestData(sortByInitialOrder(data.result));
                 window.dispatchEvent(new CustomEvent('questUpdated'));
+                setCompletionReward({
+                    message: pickSystemMessage(STRENGTH_MESSAGES),
+                    questCleared: Boolean(data.result.completed)
+                });
 
                 // Refresh Quest Logs
                 const decoded = jwtDecode<TokenPayload>(token || '');
@@ -403,16 +436,6 @@ export default function DailyQuest() {
         }
     };
 
-    const [showLevelUp, setShowLevelUp] = useState<boolean>(false);
-
-    useEffect(() => {
-        if (questData && questData.completed) {
-            setShowLevelUp(true);
-        } else {
-            setShowLevelUp(false);
-        }
-    }, [questData]);
-
     if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG ĐỒNG BỘ DỮ LIỆU HỆ THỐNG...</h3></div>;
 
     // Calculate total completed items
@@ -422,18 +445,40 @@ export default function DailyQuest() {
 
     return (
         <div className={styles.dashboardCanvas}>
-            {/* LEVEL UP OVERLAY MODAL */}
-            {showLevelUp && (
-                <div className={styles.levelUpOverlay}>
-                    <div className={styles.levelUpCard}>
-                        <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>military_tech</span>
-                        <h2 className={styles.levelUpTitle}>QUEST CLEARED</h2>
-                        <p className={styles.levelUpSubtitle}>You have completed all system instructions.</p>
+            {entryBriefing && (
+                <SystemAlert
+                    title="CHỈ THỊ HỆ THỐNG"
+                    message={entryBriefing}
+                    type="warning"
+                    confirmText="TIẾP NHẬN"
+                    onClose={() => setEntryBriefing(null)}
+                />
+            )}
+
+            {/* STRENGTH GAIN / QUEST CLEARED OVERLAY */}
+            {completionReward && (
+                <div className={styles.levelUpOverlay} onClick={() => setCompletionReward(null)}>
+                    <div className={styles.levelUpCard} onClick={(event) => event.stopPropagation()}>
+                        <div className={styles.rewardRings} aria-hidden="true"></div>
+                        <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>
+                            {completionReward.questCleared ? 'military_tech' : 'bolt'}
+                        </span>
+                        <span className={styles.rewardLabel}>
+                            {completionReward.questCleared ? 'DAILY QUEST CLEARED' : 'STRENGTH INCREASE DETECTED'}
+                        </span>
+                        <h2 className={styles.levelUpTitle}>
+                            {completionReward.questCleared ? 'NHIỆM VỤ HOÀN TẤT' : 'SỨC MẠNH TĂNG LÊN'}
+                        </h2>
+                        <div className={styles.rewardDivider} aria-hidden="true"></div>
+                        <p className={styles.levelUpSubtitle}>{completionReward.message}</p>
+                        {completionReward.questCleared && (
+                            <p className={styles.questClearNote}>Toàn bộ chỉ thị hôm nay đã được hoàn thành.</p>
+                        )}
                         <button 
                             className={styles.levelUpBtn} 
-                            onClick={() => setShowLevelUp(false)}
+                            onClick={() => setCompletionReward(null)}
                         >
-                            CONFIRM 
+                            XÁC NHẬN
                         </button>
                     </div>
                 </div>
