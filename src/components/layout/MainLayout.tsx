@@ -18,6 +18,59 @@ export default function MainLayout() {
     const [avatar, setAvatar] = useState<string>("");
     const [rankTier, setRankTier] = useState<string>("E RANK");
 
+    const [questCompleted, setQuestCompleted] = useState<boolean>(false);
+    const [penaltyTime, setPenaltyTime] = useState<string>("00:00:00");
+    const [showPenaltyInfo, setShowPenaltyInfo] = useState<boolean>(false);
+
+    // Calculate time left until midnight
+    useEffect(() => {
+        const updateTimer = () => {
+            const now = new Date();
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0);
+            const diffSeconds = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+            
+            if (diffSeconds <= 0) {
+                setPenaltyTime("00:00:00");
+                return;
+            }
+            
+            const h = String(Math.floor(diffSeconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((diffSeconds % 3600) / 60)).padStart(2, '0');
+            const s = String(diffSeconds % 60).padStart(2, '0');
+            setPenaltyTime(`${h}:${m}:${s}`);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchQuestStatus = async () => {
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            try {
+                const decoded = jwtDecode<TokenPayload>(token);
+                const username = decoded.sub;
+                if (username) {
+                    const data = await apiRequest(`/daily-quest/hunter/${username}`);
+                    const questData = data.result ? data.result : data;
+                    if (questData) {
+                        setQuestCompleted(questData.completed || false);
+                    }
+                }
+            } catch (e) {
+                console.error("Lỗi lấy thông tin Quest tại Layout:", e);
+            }
+        }
+    };
+
+    useEffect(() => {
+        fetchQuestStatus();
+        window.addEventListener('questUpdated', fetchQuestStatus);
+        return () => window.removeEventListener('questUpdated', fetchQuestStatus);
+    }, []);
+
     // Dynamically inject Material Symbols stylesheet
     useEffect(() => {
         const link = document.createElement('link');
@@ -46,7 +99,7 @@ export default function MainLayout() {
 
     useEffect(() => {
         const fetchProfileData = async () => {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             if (token) {
                 try {
                     const data = await apiRequest('/auth/me');
@@ -69,7 +122,7 @@ export default function MainLayout() {
     }, []);
 
     const handleLogout = async () => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (token) {
             try {
                 await apiRequest('/auth/logout', {
@@ -80,7 +133,7 @@ export default function MainLayout() {
                 console.error("Lỗi gọi API logout:", e);
             }
         }
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         navigate('/login');
     };
 
@@ -134,9 +187,17 @@ export default function MainLayout() {
                                 <span className={styles.navText}>History</span>
                             </Link>
                         </li>
-                        {/* <li>
-                            
-                        </li> */}
+                        <li>
+                            <Link
+                                to="/leaderboard"
+                                className={`${styles.navItem} ${location.pathname === '/leaderboard' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/leaderboard' ? styles.fillIcon : ''}`}>
+                                    trophy
+                                </span>
+                                <span className={styles.navText}>Leaderboard</span>
+                            </Link>
+                        </li>
                     </ul>
 
                     {/* Footer Settings & Logout */}
@@ -145,22 +206,22 @@ export default function MainLayout() {
                             className={styles.navItem}
                             onClick={() => navigate('/profile')}
                         >
-                             <div className={styles.sidebarAvatarWrapper}>
-                                    <img
-                                        className={styles.sidebarAvatarImg}
-                                        alt="Hunter Avatar"
-                                        src={getAvatarUrl(avatar)}
-                                    />
-                                </div>
+                            <div className={styles.sidebarAvatarWrapper}>
+                                <img
+                                    className={styles.sidebarAvatarImg}
+                                    alt="Hunter Avatar"
+                                    src={getAvatarUrl(avatar)}
+                                />
+                            </div>
                             <span className={styles.navText}>
                                 <Link
-                                to="/profile"
-                                className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
-                            >
-                               
-                                <span className={styles.navText}>Profile</span>
-                            </Link>
-                           
+                                    to="/profile"
+                                    className={`${styles.navItem} ${location.pathname === '/profile' ? styles.activeNavItem : ''}`}
+                                >
+
+                                    <span className={styles.navText}>Profile</span>
+                                </Link>
+
                             </span>
                         </button>
 
@@ -206,6 +267,34 @@ export default function MainLayout() {
 
                         {/* Top Right: Notifications + Logout + Avatar */}
                         <div className={styles.headerIcons}>
+                            {/* Penalty Timer Widget */}
+                            <div className={`${styles.headerTimerGroup} ${questCompleted ? styles.timerSafe : styles.timerDanger}`}>
+                                <div className={styles.timerWrapper}>
+                                    <span className={`material-symbols-outlined ${styles.timerIcon}`}>schedule</span>
+                                    <span className={styles.timerText}>{penaltyTime}</span>
+                                </div>
+                                
+                                <div className={styles.penaltyInfoWrapper}>
+                                    <button 
+                                        className={styles.infoTriggerBtn} 
+                                        onClick={() => setShowPenaltyInfo(!showPenaltyInfo)}
+                                        title="Click to view Penalty details"
+                                    >
+                                        <span className="material-symbols-outlined">priority_high</span>
+                                    </button>
+                                    
+                                    {showPenaltyInfo && (
+                                        <div className={styles.penaltyTooltip}>
+                                            <h4 className={styles.tooltipTitle}>Penalty Info</h4>
+                                            <p className={styles.tooltipDesc}>
+                                                Failure to complete this quest by the deadline will trigger:
+                                                <strong> The Penalty Quest of the Great Desert</strong> (Survive 4 hours).
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             <button className={styles.headerBtn} title="Notifications">
                                 <span className="material-symbols-outlined">notifications</span>
                             </button>
@@ -241,6 +330,9 @@ export default function MainLayout() {
                 </Link>
                 <Link to="/history" className={`${styles.mobileTab} ${location.pathname === '/history' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">history</span>
+                </Link>
+                <Link to="/leaderboard" className={`${styles.mobileTab} ${location.pathname === '/leaderboard' ? styles.activeTab : ''}`}>
+                    <span className="material-symbols-outlined">leaderboard</span>
                 </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <div className={`${styles.mobileAvatarWrapper} ${location.pathname === '/profile' ? styles.activeMobileAvatar : ''}`}>

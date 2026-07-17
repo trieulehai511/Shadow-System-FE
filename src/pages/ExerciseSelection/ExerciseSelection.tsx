@@ -137,7 +137,7 @@ export default function ExerciseSelection() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
                 if (!token) {
                     navigate('/login');
                     return;
@@ -290,10 +290,6 @@ export default function ExerciseSelection() {
 
             {selectionMode === 'all' ? (
                 <section className={styles.allExercisesPanel}>
-                    <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                    <div className={`${styles.corner} ${styles.topRight}`}></div>
-                    <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                    <div className={`${styles.corner} ${styles.bottomRight}`}></div>
                     <p className={styles.panelText}>
                         <span className="material-symbols-outlined">info</span>
                         Chế độ <strong>Tất cả bài tập hệ thống</strong> đang hoạt động. Hệ thống sẽ tự động luân phiên tất cả các bài tập hệ thống hiện có cho Nhiệm vụ hàng ngày của bạn mà không cần điều chỉnh thủ công.
@@ -312,11 +308,6 @@ export default function ExerciseSelection() {
                     {/* Validation Dashboard */}
                     <section className={styles.validationPanel}>
                         <div className={styles.glowDecoration}></div>
-                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.topRight}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-                        
                         <h3 className={styles.panelTitle}>
                             <span className="material-symbols-outlined">verified</span>
                             Trạng thái cấu hình Hệ thống
@@ -427,12 +418,6 @@ export default function ExerciseSelection() {
             {previewExercise && (
                 <div className={styles.modalOverlay} onClick={() => setPreviewExercise(null)}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.topRight}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-                        <div className={styles.scanline}></div>
-
                         <button 
                             className={styles.closeBtn}
                             onClick={() => setPreviewExercise(null)}
@@ -514,12 +499,6 @@ export default function ExerciseSelection() {
             {showCreateModal && (
                 <div className={styles.modalOverlay} onClick={() => { if (!creating) setShowCreateModal(false); }}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <div className={`${styles.corner} ${styles.topLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.topRight}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomLeft}`}></div>
-                        <div className={`${styles.corner} ${styles.bottomRight}`}></div>
-                        <div className={styles.scanline}></div>
-
                         <button 
                             className={styles.closeBtn}
                             onClick={() => { if (!creating) setShowCreateModal(false); }}
