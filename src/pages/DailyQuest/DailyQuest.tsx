@@ -46,6 +46,7 @@ interface ActiveQuestSession {
     phase: 'training' | 'rest';
     timeLeft: number;
     isPaused: boolean;
+    isFinishing?: boolean;
 }
 
 export default function DailyQuest() {
@@ -59,6 +60,7 @@ export default function DailyQuest() {
     const [entryBriefing, setEntryBriefing] = useState<string | null>(null);
     const [completionReward, setCompletionReward] = useState<{ message: string; questCleared: boolean } | null>(null);
     const pingTickRef = useRef<number>(0);
+    const pingInFlightRef = useRef<boolean>(false);
     const navigate = useNavigate();
 
     // New states for generating daily quest
@@ -207,13 +209,59 @@ export default function DailyQuest() {
         localStorage.setItem(`shadow_quest_session_${session.itemId}`, JSON.stringify(session));
     };
 
+    const syncProgress = useCallback(async (session: ActiveQuestSession, showSyncError = false) => {
+        if (pingInFlightRef.current) return;
+
+        pingInFlightRef.current = true;
+        try {
+            const data = await apiRequest(`/daily-quest/item/${session.itemId}/ping-progress`, {
+                method: 'POST'
+            });
+            if (data?.result) {
+                const serverAccumulated = data.result.accumulatedSeconds;
+                setActiveSession((prev) => {
+                    if (!prev || prev.itemId !== session.itemId) return prev;
+                    const updated = {
+                        ...prev,
+                        accumulatedSeconds: serverAccumulated,
+                        isFinishing: false,
+                    };
+                    saveSessionToStorage(updated);
+                    return updated;
+                });
+            }
+        } catch (err) {
+            console.error("Lỗi gửi ping-progress:", err);
+            setActiveSession((prev) => {
+                if (!prev || prev.itemId !== session.itemId) return prev;
+                const updated = { ...prev, isFinishing: false };
+                saveSessionToStorage(updated);
+                return updated;
+            });
+            if (showSyncError) {
+                setTimerError("Không thể đồng bộ tiến độ cuối. Vui lòng thử đồng bộ lại.");
+            }
+        } finally {
+            pingInFlightRef.current = false;
+        }
+    }, []);
+
     // Main workout timer and ping loop
     useEffect(() => {
         if (!activeSession || activeSession.isPaused) {
             return;
         }
 
-        const intervalId = setInterval(async () => {
+        const intervalId = setInterval(() => {
+            const currentSession = activeSessionRef.current;
+            const isLastTrainingSecond = Boolean(
+                currentSession &&
+                activeWorkoutItem &&
+                currentSession.phase === 'training' &&
+                currentSession.currentSet >= activeWorkoutItem.targetSets &&
+                currentSession.timeLeft <= 1
+            );
+
             // Ticking countdown clock
             setActiveSession((prev) => {
                 if (!prev || prev.isPaused) return prev;
@@ -225,20 +273,16 @@ export default function DailyQuest() {
                 if (nextTimeLeft <= 0) {
                     if (prev.phase === 'training') {
                         if (activeWorkoutItem && prev.currentSet >= activeWorkoutItem.targetSets) {
-                            if (prev.accumulatedSeconds >= prev.totalRequiredSeconds) {
-                                const updated = {
-                                    ...prev,
-                                    timeLeft: 0,
-                                    isPaused: true,
-                                };
-                                saveSessionToStorage(updated);
-                                return updated;
-                            } else {
-                                // Accumulation is not enough yet (e.g. 260s / 270s). Extend the timer to cover the difference.
-                                const missingSeconds = prev.totalRequiredSeconds - prev.accumulatedSeconds;
-                                nextPhase = 'training';
-                                nextTimeLeft = Math.max(1, missingSeconds);
-                            }
+                            // The visible timer ends at the configured duration. Sync the final
+                            // server heartbeat separately instead of extending the last set.
+                            const updated = {
+                                ...prev,
+                                timeLeft: 0,
+                                isPaused: true,
+                                isFinishing: prev.accumulatedSeconds < prev.totalRequiredSeconds,
+                            };
+                            saveSessionToStorage(updated);
+                            return updated;
                         } else {
                             nextPhase = 'rest';
                             nextTimeLeft = prev.restSeconds;
@@ -260,37 +304,18 @@ export default function DailyQuest() {
                 return updated;
             });
 
-            // Ping progress every 10 active seconds
-            const currentSession = activeSessionRef.current;
+            // Ping progress every 10 active seconds, plus one final sync at 00:00.
             if (currentSession && !currentSession.isPaused) {
                 pingTickRef.current += 1;
-                if (pingTickRef.current >= 10) {
+                if (pingTickRef.current >= 10 || isLastTrainingSecond) {
                     pingTickRef.current = 0;
-                    try {
-                        const data = await apiRequest(`/daily-quest/item/${currentSession.itemId}/ping-progress`, {
-                            method: 'POST'
-                        });
-                        if (data?.result) {
-                            const serverAccumulated = data.result.accumulatedSeconds;
-                            setActiveSession((prev) => {
-                                if (!prev || prev.itemId !== currentSession.itemId) return prev;
-                                const updated = {
-                                    ...prev,
-                                    accumulatedSeconds: serverAccumulated,
-                                };
-                                saveSessionToStorage(updated);
-                                return updated;
-                            });
-                        }
-                    } catch (err) {
-                        console.error("Lỗi gửi ping-progress:", err);
-                    }
+                    void syncProgress(currentSession, isLastTrainingSecond);
                 }
             }
         }, 1000);
 
         return () => clearInterval(intervalId);
-    }, [activeSession]);
+    }, [activeSession, activeWorkoutItem, syncProgress]);
 
     // Handle Page exit and visibility transitions to prevent cheat timing issues
     useEffect(() => {
@@ -665,7 +690,9 @@ export default function DailyQuest() {
                                                 {Math.floor(activeSession.timeLeft / 60)}:{(activeSession.timeLeft % 60).toString().padStart(2, '0')}
                                             </span>
                                             <span className={styles.timerLabel}>
-                                                {activeSession.phase === 'training' ? 'TẬP LUYỆN' : 'NGHỈ NGƠI'}
+                                                {activeSession.isFinishing
+                                                    ? 'ĐANG ĐỒNG BỘ KẾT QUẢ'
+                                                    : activeSession.phase === 'training' ? 'TẬP LUYỆN' : 'NGHỈ NGƠI'}
                                             </span>
                                         </div>
                                     </div>
@@ -686,26 +713,39 @@ export default function DailyQuest() {
                                     </div>
 
                                     <div className={styles.controlsRow}>
-                                        <button 
-                                            className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
-                                            onClick={() => {
-                                                const updated = { ...activeSession, isPaused: !activeSession.isPaused };
-                                                saveSessionToStorage(updated);
-                                                setActiveSession(updated);
-                                            }}
-                                        >
-                                            {activeSession.isPaused ? (
-                                                <>
-                                                    <span className="material-symbols-outlined">play_arrow</span>
-                                                    TIẾP TỤC
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="material-symbols-outlined">pause</span>
-                                                    TẠM DỪNG
-                                                </>
-                                            )}
-                                        </button>
+                                        {activeSession.timeLeft === 0 && activeSession.accumulatedSeconds < activeSession.totalRequiredSeconds ? (
+                                            <button
+                                                className={`${styles.controlBtn} ${styles.btnPrimary}`}
+                                                disabled={activeSession.isFinishing}
+                                                onClick={() => void syncProgress(activeSession, true)}
+                                            >
+                                                <span className="material-symbols-outlined">
+                                                    {activeSession.isFinishing ? 'sync' : 'sync_problem'}
+                                                </span>
+                                                {activeSession.isFinishing ? 'ĐANG ĐỒNG BỘ...' : 'ĐỒNG BỘ LẠI'}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
+                                                onClick={() => {
+                                                    const updated = { ...activeSession, isPaused: !activeSession.isPaused };
+                                                    saveSessionToStorage(updated);
+                                                    setActiveSession(updated);
+                                                }}
+                                            >
+                                                {activeSession.isPaused ? (
+                                                    <>
+                                                        <span className="material-symbols-outlined">play_arrow</span>
+                                                        TIẾP TỤC
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="material-symbols-outlined">pause</span>
+                                                        TẠM DỪNG
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
 
                                     {activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (
