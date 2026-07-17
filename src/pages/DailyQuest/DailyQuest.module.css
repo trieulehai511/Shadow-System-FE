@@ -1712,9 +1712,9 @@
 
 .exerciseActionButton {
     padding: 6px 14px;
-    background: var(--color-primary);
-    color: #000;
-    border: none;
+    background: transparent;
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-outline-variant);
     border-radius: 6px;
     font-family: var(--font-display);
     font-size: 11px;
@@ -1726,8 +1726,38 @@
 }
 
 .exerciseActionButton:hover {
-    opacity: 0.9;
+    border-color: var(--color-on-surface);
+    background: rgba(255, 255, 255, 0.03);
     transform: translateY(-1px);
+}
+
+.exerciseResumeButton {
+    padding: 6px 14px;
+    background: var(--color-primary);
+    color: #000;
+    border: 1px solid var(--color-primary);
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    animation: activeSessionPulse 2s infinite alternate;
+}
+
+.exerciseResumeButton:hover {
+    background: #0284c7;
+    border-color: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.45);
+}
+
+@keyframes activeSessionPulse {
+    from { box-shadow: 0 0 8px rgba(56, 189, 248, 0.15); }
+    to { box-shadow: 0 0 16px rgba(56, 189, 248, 0.4); }
 }
 
 .exerciseActionButtonDone {

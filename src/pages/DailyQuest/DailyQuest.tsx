@@ -978,7 +978,7 @@ export default function DailyQuest() {
                                                     </span>
                                                 ) : (
                                                     <button 
-                                                        className={styles.exerciseActionButton}
+                                                        className={hasSavedSession ? styles.exerciseResumeButton : styles.exerciseActionButton}
                                                         onClick={() => handleOpenWorkoutModal(item)}
                                                     >
                                                         {hasSavedSession ? 'Tiếp tục' : 'Tập luyện'}
