@@ -1379,3 +1379,382 @@
 .videoLinkBtn:hover {
     opacity: 0.9;
 }
+
+/* WORKOUT TIMER MODAL STYLES */
+.paceSelectionContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+    align-items: center;
+}
+
+.paceDescription {
+    color: var(--color-on-surface-variant);
+    font-size: 13px;
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.5;
+}
+
+.paceCardsRow {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.paceCard {
+    flex: 1;
+    max-width: 130px;
+    background: var(--color-surface-container-highest);
+    border: 1.5px solid var(--color-outline-variant);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.paceCard:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(253, 224, 71, 0.1);
+}
+
+.paceCardActive {
+    border-color: var(--color-primary);
+    background: rgba(253, 224, 71, 0.08);
+    box-shadow: 0 0 15px rgba(253, 224, 71, 0.2);
+}
+
+.paceName {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-on-surface);
+}
+
+.paceSub {
+    font-size: 11px;
+    color: var(--color-on-surface-variant);
+    font-weight: 500;
+}
+
+.startWorkoutBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 250px;
+    padding: 14px 24px;
+    background: var(--color-primary);
+    border: none;
+    color: #000;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 9999px;
+    box-shadow: 0 4px 15px rgba(253, 224, 71, 0.3);
+    margin-top: 10px;
+}
+
+.startWorkoutBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(253, 224, 71, 0.4);
+}
+
+.startWorkoutBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Active Workout Timer UI */
+.activeTimerContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 10px 0;
+}
+
+.phaseIndicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.phaseBadge {
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+
+.phaseTraining {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+}
+
+.phaseRest {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
+}
+
+.phaseText {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+}
+
+/* Circular Timer */
+.circularTimerWrapper {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.timerSvg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.timerTrack {
+    fill: none;
+    stroke: var(--color-surface-container-highest);
+    stroke-width: 8;
+}
+
+.timerIndicator {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timerIndicatorTraining {
+    stroke: #ef4444;
+    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+}
+
+.timerIndicatorRest {
+    stroke: #22c55e;
+    filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
+}
+
+.timerTextContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+}
+
+.timerValue {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+    line-height: 1;
+}
+
+.timerLabel {
+    font-size: 11px;
+    color: var(--color-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* Control Buttons */
+.controlsRow {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.controlBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1.5px solid var(--color-outline-variant);
+}
+
+.btnPrimary {
+    background: var(--color-primary);
+    color: #000;
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(253, 224, 71, 0.2);
+}
+
+.btnPrimary:hover {
+    box-shadow: 0 4px 18px rgba(253, 224, 71, 0.35);
+}
+
+.btnSecondary {
+    background: var(--color-surface-container-highest);
+    color: var(--color-on-surface);
+}
+
+.btnSecondary:hover {
+    background: var(--color-outline-variant);
+    border-color: var(--color-on-surface-variant);
+}
+
+/* Progress Section */
+.timerProgressSection {
+    width: 100%;
+    background: var(--color-surface-container-highest);
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.progressLabelRow {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+}
+
+.timerProgressBarTrack {
+    height: 6px;
+    background: rgba(9, 9, 11, 0.8);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.timerProgressBarFill {
+    height: 100%;
+    background: var(--color-primary);
+    transition: width 0.3s ease;
+}
+
+.completeExerciseBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: #22c55e;
+    color: #000;
+    border: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    transition: all 0.2s ease;
+    animation: buttonPulse 2s infinite;
+}
+
+.completeExerciseBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.45);
+}
+
+.errorText {
+    color: #ef4444;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: center;
+    margin-top: 4px;
+}
+
+@keyframes buttonPulse {
+    0% {
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 25px rgba(34, 197, 94, 0.6);
+    }
+    100% {
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+}
+
+.exerciseActionButton {
+    padding: 6px 14px;
+    background: var(--color-primary);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exerciseActionButton:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.exerciseActionButtonDone {
+    padding: 6px 14px;
+    background: transparent;
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+

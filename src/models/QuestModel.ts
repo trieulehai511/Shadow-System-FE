@@ -11,6 +11,8 @@ export interface QuestItem {
     tutorialVideoUrl?: string;
     imageUrl?: string;
     safetyTips?: string;
+    accumulatedSeconds?: number;
+    requiredSeconds?: number;
 }
 
 export interface DailyQuestResponse {

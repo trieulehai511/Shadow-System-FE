@@ -14,10 +14,29 @@ type DailyQuestApiResponse = {
     result?: DailyQuestResponse;
 };
 
+interface ActiveQuestSession {
+    itemId: string;
+    exerciseName: string;
+    pace: 'STRONG' | 'AVERAGE' | 'WEAK';
+    secondsPerSet: number;
+    restSeconds: number;
+    totalRequiredSeconds: number;
+    accumulatedSeconds: number;
+    currentSet: number;
+    phase: 'training' | 'rest';
+    timeLeft: number;
+    isPaused: boolean;
+}
+
 export default function DailyQuest() {
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
+    const [activeWorkoutItem, setActiveWorkoutItem] = useState<QuestItem | null>(null);
+    const [activeSession, setActiveSession] = useState<ActiveQuestSession | null>(null);
+    const [selectedPace, setSelectedPace] = useState<'STRONG' | 'AVERAGE' | 'WEAK'>('AVERAGE');
+    const [timerError, setTimerError] = useState<string | null>(null);
+    const pingTickRef = useRef<number>(0);
     const navigate = useNavigate();
     
     // Ref to preserve the initial order of quest items
@@ -95,21 +114,229 @@ export default function DailyQuest() {
         };
 
         fetchDailyQuest();
-    }, [navigate]);
+    }, [navigate, sortByInitialOrder]);
 
+    const activeSessionRef = useRef<ActiveQuestSession | null>(null);
+    useEffect(() => {
+        activeSessionRef.current = activeSession;
+    }, [activeSession]);
 
+    const saveSessionToStorage = (session: ActiveQuestSession) => {
+        localStorage.setItem(`shadow_quest_session_${session.itemId}`, JSON.stringify(session));
+    };
 
-    const handleCompleteItem = async (itemId: string): Promise<void> => {
+    // Main workout timer and ping loop
+    useEffect(() => {
+        if (!activeSession || activeSession.isPaused) {
+            return;
+        }
+
+        const intervalId = setInterval(async () => {
+            // Ticking countdown clock
+            setActiveSession((prev) => {
+                if (!prev || prev.isPaused) return prev;
+
+                let nextTimeLeft = prev.timeLeft - 1;
+                let nextPhase = prev.phase;
+                let nextSet = prev.currentSet;
+
+                if (nextTimeLeft <= 0) {
+                    if (prev.phase === 'training') {
+                        if (activeWorkoutItem && prev.currentSet >= activeWorkoutItem.targetSets) {
+                            if (prev.accumulatedSeconds >= prev.totalRequiredSeconds) {
+                                const updated = {
+                                    ...prev,
+                                    timeLeft: 0,
+                                    isPaused: true,
+                                };
+                                saveSessionToStorage(updated);
+                                return updated;
+                            } else {
+                                // Accumulation is not enough yet (e.g. 260s / 270s). Extend the timer to cover the difference.
+                                const missingSeconds = prev.totalRequiredSeconds - prev.accumulatedSeconds;
+                                nextPhase = 'training';
+                                nextTimeLeft = Math.max(1, missingSeconds);
+                            }
+                        } else {
+                            nextPhase = 'rest';
+                            nextTimeLeft = prev.restSeconds;
+                        }
+                    } else {
+                        nextPhase = 'training';
+                        nextTimeLeft = prev.secondsPerSet;
+                        nextSet = prev.currentSet + 1;
+                    }
+                }
+
+                const updated = {
+                    ...prev,
+                    timeLeft: nextTimeLeft,
+                    phase: nextPhase,
+                    currentSet: nextSet,
+                };
+                saveSessionToStorage(updated);
+                return updated;
+            });
+
+            // Ping progress every 10 active seconds
+            const currentSession = activeSessionRef.current;
+            if (currentSession && !currentSession.isPaused) {
+                pingTickRef.current += 1;
+                if (pingTickRef.current >= 10) {
+                    pingTickRef.current = 0;
+                    try {
+                        const data = await apiRequest(`/daily-quest/item/${currentSession.itemId}/ping-progress`, {
+                            method: 'POST'
+                        });
+                        if (data?.result) {
+                            const serverAccumulated = data.result.accumulatedSeconds;
+                            setActiveSession((prev) => {
+                                if (!prev || prev.itemId !== currentSession.itemId) return prev;
+                                const updated = {
+                                    ...prev,
+                                    accumulatedSeconds: serverAccumulated,
+                                };
+                                saveSessionToStorage(updated);
+                                return updated;
+                            });
+                        }
+                    } catch (err) {
+                        console.error("Lỗi gửi ping-progress:", err);
+                    }
+                }
+            }
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [activeSession]);
+
+    // Handle Page exit and visibility transitions to prevent cheat timing issues
+    useEffect(() => {
+        const handlePauseOnExit = () => {
+            const current = activeSessionRef.current;
+            if (current && !current.isPaused) {
+                const pausedSession = { ...current, isPaused: true };
+                saveSessionToStorage(pausedSession);
+                setActiveSession(pausedSession);
+            }
+        };
+
+        window.addEventListener('beforeunload', handlePauseOnExit);
+        
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                handlePauseOnExit();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', handlePauseOnExit);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    const handleOpenWorkoutModal = (item: QuestItem) => {
+        setActiveWorkoutItem(item);
+        pingTickRef.current = 0;
+        const saved = localStorage.getItem(`shadow_quest_session_${item.id}`);
+        const serverAccumulated = item.accumulatedSeconds ?? 0;
+        const serverRequired = item.requiredSeconds ?? 0;
+
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved) as ActiveQuestSession;
+                // Sync local session with the latest accumulated progress from the server
+                const updatedSession: ActiveQuestSession = {
+                    ...parsed,
+                    accumulatedSeconds: Math.max(parsed.accumulatedSeconds, serverAccumulated),
+                    isPaused: true
+                };
+                setActiveSession(updatedSession);
+                saveSessionToStorage(updatedSession);
+                setSelectedPace(parsed.pace);
+            } catch (e) {
+                console.error("Lỗi parse session:", e);
+                localStorage.removeItem(`shadow_quest_session_${item.id}`);
+                setActiveSession(null);
+            }
+        } else if (serverRequired > 0 && serverAccumulated >= serverRequired) {
+            // Already met on the server, create a pre-completed session state to allow immediate click on Complete
+            const newSession: ActiveQuestSession = {
+                itemId: item.id,
+                exerciseName: item.exerciseName,
+                pace: 'AVERAGE',
+                secondsPerSet: 0,
+                restSeconds: 0,
+                totalRequiredSeconds: serverRequired,
+                accumulatedSeconds: serverAccumulated,
+                currentSet: item.targetSets,
+                phase: 'training',
+                timeLeft: 0,
+                isPaused: true,
+            };
+            setActiveSession(newSession);
+            saveSessionToStorage(newSession);
+        } else {
+            setActiveSession(null);
+            setSelectedPace('AVERAGE');
+        }
+        setTimerError(null);
+    };
+
+    const handleStartWorkout = async (item: QuestItem) => {
         try {
+            setTimerError(null);
+            pingTickRef.current = 0;
+            const data = await apiRequest(`/daily-quest/item/${item.id}/start?pace=${selectedPace}`, {
+                method: 'POST'
+            });
+
+            if (data?.result) {
+                const { secondsPerSet, restSeconds, totalRequiredSeconds } = data.result;
+                const newSession: ActiveQuestSession = {
+                    itemId: item.id,
+                    exerciseName: item.exerciseName,
+                    pace: selectedPace,
+                    secondsPerSet: secondsPerSet,
+                    restSeconds: restSeconds,
+                    totalRequiredSeconds: totalRequiredSeconds,
+                    accumulatedSeconds: 0,
+                    currentSet: 1,
+                    phase: 'training',
+                    timeLeft: secondsPerSet,
+                    isPaused: false,
+                };
+                saveSessionToStorage(newSession);
+                setActiveSession(newSession);
+            }
+        } catch (err: any) {
+            console.error("Lỗi khi bắt đầu bài tập:", err);
+            setTimerError(err.message || "Không thể bắt đầu bài tập.");
+        }
+    };
+
+    const handleCompleteWorkout = async (itemId: string) => {
+        try {
+            setTimerError(null);
             const token = sessionStorage.getItem('token');
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/item/${itemId}/complete`, {
                 method: 'PATCH'
             });
 
             if (data.result) {
+                // Remove from storage
+                localStorage.removeItem(`shadow_quest_session_${itemId}`);
+                
+                // Close modal
+                setActiveWorkoutItem(null);
+                setActiveSession(null);
+
+                // Update local state
                 setQuestData(sortByInitialOrder(data.result));
                 window.dispatchEvent(new CustomEvent('questUpdated'));
-                // Refresh Logs after completion
+
+                // Refresh Quest Logs
                 const decoded = jwtDecode<TokenPayload>(token || '');
                 const usernameParam = decoded.sub;
                 const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
@@ -117,8 +344,9 @@ export default function DailyQuest() {
                     setQuestLogs(logsData.result.content);
                 }
             }
-        } catch (error) {
-            console.error("Lỗi ghi nhận tiến độ:", error);
+        } catch (err: any) {
+            console.error("Lỗi ghi nhận hoàn thành bài tập:", err);
+            setTimerError(err.message || "Ghi nhận thất bại. Phát hiện cheat thời gian?");
         }
     };
 
@@ -147,7 +375,6 @@ export default function DailyQuest() {
                     <div className={styles.levelUpCard}>
                         <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>military_tech</span>
                         <h2 className={styles.levelUpTitle}>QUEST CLEARED</h2>
-                        {/* <div className={styles.levelUpRank}>S-RANK</div> */}
                         <p className={styles.levelUpSubtitle}>You have completed all system instructions.</p>
                         <button 
                             className={styles.levelUpBtn} 
@@ -240,6 +467,168 @@ export default function DailyQuest() {
                 </div>
             )}
 
+            {/* ACTIVE WORKOUT TIMER MODAL */}
+            {activeWorkoutItem && (
+                <div className={styles.modalOverlay} onClick={() => {
+                    if (activeSession && !activeSession.isPaused) {
+                        const paused = { ...activeSession, isPaused: true };
+                        saveSessionToStorage(paused);
+                        setActiveSession(paused);
+                    }
+                    setActiveWorkoutItem(null);
+                }}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <button 
+                            className={styles.closeBtn}
+                            onClick={() => {
+                                if (activeSession && !activeSession.isPaused) {
+                                    const paused = { ...activeSession, isPaused: true };
+                                    saveSessionToStorage(paused);
+                                    setActiveSession(paused);
+                                }
+                                setActiveWorkoutItem(null);
+                            }}
+                        >
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+
+                        <div className={styles.exerciseDetailHeader}>
+                            <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
+                            <h2 className={styles.detailTitle}>{activeWorkoutItem.exerciseName}</h2>
+                            <p className={styles.detailTarget}>
+                                Mục tiêu: <span className={styles.neonBlue}>{activeWorkoutItem.targetSets} Sets × {activeWorkoutItem.targetReps} Reps</span>
+                            </p>
+                        </div>
+
+                        <div className={styles.detailBody}>
+                            {!activeSession ? (
+                                <div className={styles.paceSelectionContainer}>
+                                    <h3 className={styles.sectionHeader}>
+                                        <span className="material-symbols-outlined">speed</span>
+                                        CHỌN CƯỜNG ĐỘ TẬP LUYỆN
+                                    </h3>
+                                    <p className={styles.paceDescription}>
+                                        Chọn cường độ phù hợp để hệ thống tính kịch bản thời gian tập và nghỉ phù hợp.
+                                    </p>
+                                    
+                                    <div className={styles.paceCardsRow}>
+                                        {(['STRONG', 'AVERAGE', 'WEAK'] as const).map((p) => (
+                                            <div 
+                                                key={p}
+                                                className={`${styles.paceCard} ${selectedPace === p ? styles.paceCardActive : ''}`}
+                                                onClick={() => setSelectedPace(p)}
+                                            >
+                                                <span className={styles.paceName}>
+                                                    {p === 'STRONG' ? '⚡ STRONG' : p === 'AVERAGE' ? '⚖️ AVERAGE' : '🌱 WEAK'}
+                                                </span>
+                                                <span className={styles.paceSub}>
+                                                    {p === 'STRONG' ? 'Nhanh & Nặng' : p === 'AVERAGE' ? 'Trung bình' : 'Nhẹ nhàng'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <button 
+                                        className={styles.startWorkoutBtn}
+                                        onClick={() => handleStartWorkout(activeWorkoutItem)}
+                                    >
+                                        BẮT ĐẦU TẬP
+                                    </button>
+                                    
+                                    {timerError && <p className={styles.errorText}>{timerError}</p>}
+                                </div>
+                            ) : (
+                                <div className={styles.activeTimerContainer}>
+                                    <div className={styles.phaseIndicator}>
+                                        <span className={`${styles.phaseBadge} ${activeSession.phase === 'training' ? styles.phaseTraining : styles.phaseRest}`}>
+                                            {activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
+                                        </span>
+                                        <span className={styles.phaseText}>
+                                            SET {activeSession.currentSet} / {activeWorkoutItem.targetSets}
+                                        </span>
+                                    </div>
+
+                                    <div className={styles.circularTimerWrapper}>
+                                        <svg className={styles.timerSvg}>
+                                            <circle className={styles.timerTrack} cx="100" cy="100" r="85" />
+                                            <circle 
+                                                className={`${styles.timerIndicator} ${activeSession.phase === 'training' ? styles.timerIndicatorTraining : styles.timerIndicatorRest}`} 
+                                                cx="100" 
+                                                cy="100" 
+                                                r="85" 
+                                                strokeDasharray={2 * Math.PI * 85}
+                                                strokeDashoffset={
+                                                    2 * Math.PI * 85 * (1 - activeSession.timeLeft / (activeSession.phase === 'training' ? activeSession.secondsPerSet : activeSession.restSeconds))
+                                                }
+                                            />
+                                        </svg>
+                                        <div className={styles.timerTextContainer}>
+                                            <span className={styles.timerValue}>
+                                                {Math.floor(activeSession.timeLeft / 60)}:{(activeSession.timeLeft % 60).toString().padStart(2, '0')}
+                                            </span>
+                                            <span className={styles.timerLabel}>
+                                                {activeSession.phase === 'training' ? 'TẬP LUYỆN' : 'NGHỈ NGƠI'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.timerProgressSection}>
+                                        <div className={styles.progressLabelRow}>
+                                            <span>Tiến độ (Server ping)</span>
+                                            <span>
+                                                {activeSession.accumulatedSeconds}s / {activeSession.totalRequiredSeconds}s
+                                            </span>
+                                        </div>
+                                        <div className={styles.timerProgressBarTrack}>
+                                            <div 
+                                                className={styles.timerProgressBarFill} 
+                                                style={{ width: `${Math.min(100, (activeSession.accumulatedSeconds / activeSession.totalRequiredSeconds) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.controlsRow}>
+                                        <button 
+                                            className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
+                                            onClick={() => {
+                                                const updated = { ...activeSession, isPaused: !activeSession.isPaused };
+                                                saveSessionToStorage(updated);
+                                                setActiveSession(updated);
+                                            }}
+                                        >
+                                            {activeSession.isPaused ? (
+                                                <>
+                                                    <span className="material-symbols-outlined">play_arrow</span>
+                                                    TIẾP TỤC
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined">pause</span>
+                                                    TẠM DỪNG
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (
+                                        <button 
+                                            className={styles.completeExerciseBtn}
+                                            onClick={() => handleCompleteWorkout(activeWorkoutItem.id)}
+                                        >
+                                            <span className="material-symbols-outlined">verified</span>
+                                            HOÀN THÀNH BÀI TẬP & NHẬN THƯỞNG
+                                        </button>
+                                    )}
+
+                                    {timerError && <p className={styles.errorText}>{timerError}</p>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             {/* BENTO GRID LAYOUT */}
             <div className={styles.bentoGrid}>
                 
@@ -291,43 +680,54 @@ export default function DailyQuest() {
 
                         {/* Exercise Items List */}
                         <div className={styles.exercisesList}>
-                            {questData.questItems.map((item) => (
-                                <div 
-                                    key={item.id}
-                                    className={`${styles.exerciseItem} ${
-                                        item.completed ? styles.itemDone : styles.itemPending
-                                    }`}
-                                >
-                                    <div className={styles.exerciseLeft}>
-                                        {item.completed ? (
-                                            <div className={styles.checkBoxCompleted}>
-                                                <span className="material-symbols-outlined">check</span>
-                                            </div>
-                                        ) : (
+                            {questData.questItems.map((item) => {
+                                const hasSavedSession = localStorage.getItem(`shadow_quest_session_${item.id}`) !== null;
+                                return (
+                                    <div 
+                                        key={item.id}
+                                        className={`${styles.exerciseItem} ${
+                                            item.completed ? styles.itemDone : styles.itemPending
+                                        }`}
+                                    >
+                                        <div className={styles.exerciseLeft}>
+                                            {item.completed ? (
+                                                <div className={styles.checkBoxCompleted}>
+                                                    <span className="material-symbols-outlined">check</span>
+                                                </div>
+                                            ) : (
+                                                <div className={styles.checkBoxPending} style={{ cursor: 'default' }}>
+                                                    <div className={styles.pendingDot}></div>
+                                                </div>
+                                            )}
+                                            <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
+                                                {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
+                                            </span>
                                             <button 
-                                                className={styles.checkBoxPending}
-                                                onClick={() => handleCompleteItem(item.id)}
-                                                title="Mark as completed"
+                                                className={styles.infoBtn}
+                                                onClick={() => setSelectedExerciseForModal(item)}
+                                                title="Xem chi tiết"
                                             >
-                                                <div className={styles.pendingDot}></div>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
                                             </button>
-                                        )}
-                                        <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
-                                            {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
-                                        </span>
-                                        <button 
-                                            className={styles.infoBtn}
-                                            onClick={() => setSelectedExerciseForModal(item)}
-                                            title="Xem chi tiết"
-                                        >
-                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
-                                        </button>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            {item.completed ? (
+                                                <span className={styles.exerciseActionButtonDone}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>verified</span>
+                                                    DONE
+                                                </span>
+                                            ) : (
+                                                <button 
+                                                    className={styles.exerciseActionButton}
+                                                    onClick={() => handleOpenWorkoutModal(item)}
+                                                >
+                                                    {hasSavedSession ? 'Tiếp tục' : 'Tập luyện'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className={styles.exerciseStat}>
-                                        {item.completed ? `${item.targetReps}/${item.targetReps}` : `0/${item.targetReps}`}
-                                    </span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </section>
