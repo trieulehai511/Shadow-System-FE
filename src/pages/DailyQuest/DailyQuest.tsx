@@ -47,12 +47,12 @@ const SYSTEM_BRIEFINGS = [
 ];
 
 const STRENGTH_MESSAGES = [
-    'Có vẻ ngươi mạnh hơn hôm qua một chút. Đừng tự mãn—mức này vẫn chưa đủ để sống sót.',
-    'Nỗ lực đã được ghi nhận. Sức mạnh tăng nhẹ. Tỷ lệ trở thành kẻ bị săn: vẫn không thay đổi.',
-    'Cơ thể ngươi đã phản hồi. Cuối cùng cũng có dấu hiệu nó chưa hoàn toàn vô dụng.',
-    'Một giới hạn nhỏ đã bị nghiền nát. Phía trước vẫn còn vô số giới hạn đang chờ nghiền nát ngươi.',
-    'Tiến bộ được chấp nhận. Hệ Thống sẽ tạm thời hoãn đánh giá ngươi là một thất bại.',
-    'Ngươi đã sống sót qua thêm một chỉ thị. Đừng hiểu lầm: đó chưa phải là chiến thắng.'
+    'Chỉ số thể chất tăng trưởng. Tiếp tục duy trì hoặc đối mặt với đào thải.',
+    'Một giới hạn đã được gỡ bỏ. Đừng tự mãn. Ngươi vẫn còn quá yếu.',
+    'Thể chất đã cải thiện. Hệ thống yêu cầu duy trì cường độ hiện tại.',
+    'Hấp thụ năng lượng hoàn tất. Tỉ lệ sống sót tăng nhẹ.',
+    'Ghi nhận tiến trình tiến hóa mới. Ngừng lại đồng nghĩa với hủy diệt.',
+    'Chỉ thị hoàn thành. Sức mạnh tăng cường. Chuẩn bị cho thử thách tiếp theo.'
 ];
 
 const pickSystemMessage = (messages: string[]) => messages[Math.floor(Math.random() * messages.length)];
@@ -544,34 +544,37 @@ export default function DailyQuest() {
             {completionReward && (
                 <div className={styles.levelUpOverlay} onClick={() => setCompletionReward(null)}>
                     <div className={styles.levelUpCard} onClick={(event) => event.stopPropagation()}>
-                        <div className={styles.rewardRings} aria-hidden="true"></div>
-                        <span className={`material-symbols-outlined ${styles.levelUpIcon}`}>
-                            {completionReward.questCleared ? 'military_tech' : 'bolt'}
-                        </span>
-                        <span className={styles.rewardLabel}>
-                            {completionReward.questCleared ? 'DAILY QUEST CLEARED' : 'STRENGTH INCREASE DETECTED'}
-                        </span>
+                        <div className={styles.systemHeader}>
+                            <span className={styles.systemBadge}>HỆ THỐNG</span>
+                            <span className={styles.systemStatus}>
+                                {completionReward.questCleared ? 'QUEST CLEARED' : 'UPDATE COMPLETED'}
+                            </span>
+                        </div>
+                        
                         <h2 className={styles.levelUpTitle}>
-                            {completionReward.questCleared ? 'NHIỆM VỤ HOÀN TẤT' : 'SỨC MẠNH TĂNG LÊN'}
+                            {completionReward.questCleared ? 'NHIỆM VỤ HOÀN TẤT' : 'THỂ CHẤT TĂNG TRƯỞNG'}
                         </h2>
-                        <div className={styles.rewardDivider} aria-hidden="true"></div>
+                        
+                        <p className={styles.levelUpSubtitle}>{completionReward.message}</p>
+                        
                         {completionReward.questCleared && ATTRIBUTE_NAMES.some((attribute) => typeof completionReward.attributeGains[attribute] === 'number') && (
-                            <div className={styles.attributeRewards}>
-                                {ATTRIBUTE_NAMES.map((attribute) => typeof completionReward.attributeGains[attribute] === 'number' && (
-                                    <div className={styles.strengthReward} key={attribute}>
-                                        <span className="material-symbols-outlined">
-                                            {attribute === 'strength' ? 'fitness_center' : attribute === 'agility' ? 'directions_run' : 'favorite'}
-                                        </span>
-                                        <span>{ATTRIBUTE_LABELS[attribute]}</span>
-                                        <strong>+{completionReward.attributeGains[attribute]}</strong>
-                                    </div>
-                                ))}
+                            <div className={styles.attributeList}>
+                                <div className={styles.attributeListTitle}>BIẾN ĐỔI CHỈ SỐ:</div>
+                                <div className={styles.attributeGrid}>
+                                    {ATTRIBUTE_NAMES.map((attribute) => {
+                                        const gain = completionReward.attributeGains[attribute];
+                                        if (typeof gain !== 'number' || gain <= 0) return null;
+                                        return (
+                                            <div className={styles.attributeRow} key={attribute}>
+                                                <span className={styles.attrLabel}>{ATTRIBUTE_LABELS[attribute]}</span>
+                                                <span className={styles.attrValue}>+{gain}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
-                        <p className={styles.levelUpSubtitle}>{completionReward.message}</p>
-                        {completionReward.questCleared && (
-                            <p className={styles.questClearNote}>Toàn bộ chỉ thị hôm nay đã được hoàn thành.</p>
-                        )}
+                        
                         <div className={styles.rewardActions}>
                             {completionReward.questCleared && (
                                 <button
