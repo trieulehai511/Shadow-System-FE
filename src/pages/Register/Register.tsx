@@ -54,6 +54,19 @@ export default function Register() {
     const handleRegister = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         if (isLoading) return;
+
+        const trimmedUsername = username.trim();
+        setUsername(trimmedUsername);
+
+        if (!trimmedUsername) {
+            setAlertConfig({
+                title: "THÔNG TIN KHÔNG HỢP LỆ",
+                message: "Username không được để trống.",
+                type: "warning"
+            });
+            return;
+        }
+
         if (password !== confirmPassword) {
             setAlertConfig({
                 title: "MẬT KHẨU KHÔNG KHỚP",
@@ -68,7 +81,7 @@ export default function Register() {
             const data: RegisterResponse = await apiRequest('/hunter', {
                 method: 'POST',
                 body: JSON.stringify({
-                    "userName": username,
+                    "userName": trimmedUsername,
                     "password": password,
                     "profile": {
                         "fullName": fullName,

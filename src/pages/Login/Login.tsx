@@ -40,11 +40,24 @@ export default function Login() {
     const handleLogin = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         if (isLoading) return;
+
+        const trimmedUsername = username.trim();
+        setUsername(trimmedUsername);
+
+        if (!trimmedUsername) {
+            setAlertConfig({
+                title: "THÔNG TIN KHÔNG HỢP LỆ",
+                message: "Username không được để trống.",
+                type: "warning"
+            });
+            return;
+        }
+
         setIsLoading(true);
         try {
             const data: LoginApiResponse = await apiRequest('/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ userName: username, password: password })
+                body: JSON.stringify({ userName: trimmedUsername, password: password })
             });
 
             if (data.code === 200 && data.result?.authenticated) {
