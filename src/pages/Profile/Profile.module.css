@@ -583,3 +583,67 @@
     font-size: 13px;
     margin-top: 4px;
 }
+
+/* System futuristic card accents */
+.corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: var(--color-primary);
+    border-style: solid;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.topLeft {
+    top: -2px;
+    left: -2px;
+    border-width: 2px 0 0 2px;
+}
+
+.topRight {
+    top: -2px;
+    right: -2px;
+    border-width: 2px 2px 0 0;
+}
+
+.bottomLeft {
+    bottom: -2px;
+    left: -2px;
+    border-width: 0 0 2px 2px;
+}
+
+.bottomRight {
+    bottom: -2px;
+    right: -2px;
+    border-width: 0 2px 2px 0;
+}
+
+.scanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        rgba(56, 189, 248, 0.05) 50%,
+        rgba(255, 255, 255, 0)
+    );
+    background-size: 100% 4px;
+    z-index: 2;
+    pointer-events: none;
+    animation: scanAnimation 6s linear infinite;
+    opacity: 0.45;
+}
+
+@keyframes scanAnimation {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 100%;
+    }
+}
+

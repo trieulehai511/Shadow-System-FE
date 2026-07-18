@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, RouterContextProvider, Router } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login/Login';
 import DailyQuest from './pages/DailyQuest/DailyQuest';
 import QuestHistory from './pages/QuestHistory/QuestHistory';
@@ -8,6 +8,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import Register from './pages/Register/Register';
 import Leaderboard from './pages/Leaderboard/Leaderboard';
+import HunterSearch from './pages/HunterSearch/HunterSearch';
 export default function App() {
     return (
         <BrowserRouter>
@@ -30,6 +31,7 @@ export default function App() {
                     <Route path="/exercises" element={<ExerciseSelection />} />
                     <Route path="/history" element={<QuestHistory />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/hunter-search" element={<HunterSearch />} />
                     <Route path="/profile" element={<Profile />} />
                 </Route>
 

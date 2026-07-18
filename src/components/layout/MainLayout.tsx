@@ -198,6 +198,17 @@ export default function MainLayout() {
                                 <span className={styles.navText}>Leaderboard</span>
                             </Link>
                         </li>
+                        <li>
+                            <Link
+                                to="/hunter-search"
+                                className={`${styles.navItem} ${location.pathname === '/hunter-search' ? styles.activeNavItem : ''}`}
+                            >
+                                <span className={`material-symbols-outlined ${location.pathname === '/hunter-search' ? styles.fillIcon : ''}`}>
+                                    person_search
+                                </span>
+                                <span className={styles.navText}>Hunter Search</span>
+                            </Link>
+                        </li>
                     </ul>
 
                     {/* Footer Settings & Logout */}
@@ -333,6 +344,9 @@ export default function MainLayout() {
                 </Link>
                 <Link to="/leaderboard" className={`${styles.mobileTab} ${location.pathname === '/leaderboard' ? styles.activeTab : ''}`}>
                     <span className="material-symbols-outlined">leaderboard</span>
+                </Link>
+                <Link to="/hunter-search" className={`${styles.mobileTab} ${location.pathname === '/hunter-search' ? styles.activeTab : ''}`}>
+                    <span className="material-symbols-outlined">person_search</span>
                 </Link>
                 <Link to="/profile" className={`${styles.mobileTab} ${location.pathname === '/profile' ? styles.activeTab : ''}`}>
                     <div className={`${styles.mobileAvatarWrapper} ${location.pathname === '/profile' ? styles.activeMobileAvatar : ''}`}>
