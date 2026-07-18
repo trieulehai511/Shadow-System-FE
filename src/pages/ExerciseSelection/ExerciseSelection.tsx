@@ -70,6 +70,7 @@ export default function ExerciseSelection() {
 
     const handleCreateExercise = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (creating) return;
         if (!newName.trim()) {
             setAlertConfig({
                 title: "THIẾU THÔNG TIN",
@@ -203,6 +204,7 @@ export default function ExerciseSelection() {
     const categoryCounts = getCategoryCounts();
 
     const handleSave = async () => {
+        if (saving) return;
         if (selectionMode === 'custom') {
             // Validate before calling API
             const invalidCats = CATEGORIES.filter(cat => (categoryCounts[cat.key] || 0) < 6);

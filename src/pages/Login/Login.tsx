@@ -16,6 +16,7 @@ type LoginApiResponse = {
 export default function Login() {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [alertConfig, setAlertConfig] = useState<{
         message: string;
         type: 'success' | 'error' | 'info' | 'warning';
@@ -38,6 +39,8 @@ export default function Login() {
 
     const handleLogin = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
+        if (isLoading) return;
+        setIsLoading(true);
         try {
             const data: LoginApiResponse = await apiRequest('/auth/login', {
                 method: 'POST',
@@ -68,9 +71,11 @@ export default function Login() {
             console.error("Lỗi kết nối API:", error);
             setAlertConfig({
                 title: "LỖI HỆ THỐNG",
-                message: "Không thể kết nối đến Thần Ma Hệ Thống (Backend).",
+                message: "Không thể kết nối tới hệ thống",
                 type: "error"
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -114,6 +119,8 @@ export default function Login() {
                                         placeholder="Enter your registered ID"
                                         value={username}
                                         onChange={(event) => setUsername(event.target.value)}
+                                        disabled={isLoading}
+                                        required
                                     />
                                 </div>
                             </div>
@@ -122,7 +129,7 @@ export default function Login() {
                             <div className={styles.inputGroup}>
                                 <div className={styles.labelRow}>
                                     <label htmlFor="password">PASSCODE</label>
-                                    <button className={styles.recoverLink} type="button">Recover?</button>
+                                    <button className={styles.recoverLink} type="button" disabled={isLoading}>Recover?</button>
                                 </div>
                                 <div className={styles.inputShell}>
                                     <span className={`material-symbols-outlined ${styles.inputIcon}`} aria-hidden="true">
@@ -134,15 +141,26 @@ export default function Login() {
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
+                                        disabled={isLoading}
+                                        required
                                     />
                                 </div>
                             </div>
 
                             {/* Actions */}
                             <div className={styles.actionWrapper}>
-                                <button className={styles.actionButton} type="submit">
-                                    <span className="material-symbols-outlined">login</span>
-                                    Login
+                                <button className={styles.actionButton} type="submit" disabled={isLoading}>
+                                    {isLoading ? (
+                                        <>
+                                            <span className="material-symbols-outlined animate-spin">sync</span>
+                                            Connecting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">login</span>
+                                            Login
+                                        </>
+                                    )}
                                 </button>
 
                                 <div className={styles.footerLink}>

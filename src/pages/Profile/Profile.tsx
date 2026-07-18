@@ -130,6 +130,7 @@ export default function Profile() {
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (saving) return;
         setErrorMsg('');
         
         if (!fullName.trim()) {

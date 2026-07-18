@@ -93,6 +93,7 @@ export default function DailyQuest() {
     // New states for generating daily quest
     const [hunterId, setHunterId] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const [isWorkoutActionLoading, setIsWorkoutActionLoading] = useState<boolean>(false);
     const [actionError, setActionError] = useState<string | null>(null);
     
     // Ref to preserve the initial order of quest items
@@ -193,6 +194,7 @@ export default function DailyQuest() {
             setActionError("Không tìm thấy mã số Thợ Săn của bản thể. Vui lòng tải lại trang.");
             return;
         }
+        if (isGenerating) return;
         setIsGenerating(true);
         setActionError(null);
         try {
@@ -419,6 +421,8 @@ export default function DailyQuest() {
     };
 
     const handleStartWorkout = async (item: QuestItem) => {
+        if (isWorkoutActionLoading) return;
+        setIsWorkoutActionLoading(true);
         try {
             setTimerError(null);
             pingTickRef.current = 0;
@@ -447,10 +451,14 @@ export default function DailyQuest() {
         } catch (err: any) {
             console.error("Lỗi khi bắt đầu bài tập:", err);
             setTimerError(err.message || "Không thể bắt đầu bài tập.");
+        } finally {
+            setIsWorkoutActionLoading(false);
         }
     };
 
     const handleCompleteWorkout = async (itemId: string) => {
+        if (isWorkoutActionLoading) return;
+        setIsWorkoutActionLoading(true);
         try {
             setTimerError(null);
             const token = sessionStorage.getItem('token');
@@ -518,6 +526,8 @@ export default function DailyQuest() {
         } catch (err: any) {
             console.error("Lỗi ghi nhận hoàn thành bài tập:", err);
             setTimerError(err.message || "Ghi nhận thất bại. Phát hiện cheat thời gian?");
+        } finally {
+            setIsWorkoutActionLoading(false);
         }
     };
 
@@ -743,8 +753,9 @@ export default function DailyQuest() {
                                     <button 
                                         className={styles.startWorkoutBtn}
                                         onClick={() => handleStartWorkout(activeWorkoutItem)}
+                                        disabled={isWorkoutActionLoading}
                                     >
-                                        BẮT ĐẦU TẬP
+                                        {isWorkoutActionLoading ? 'ĐANG KÍCH HOẠT...' : 'BẮT ĐẦU TẬP'}
                                     </button>
                                     
                                     {timerError && <p className={styles.errorText}>{timerError}</p>}
@@ -841,9 +852,10 @@ export default function DailyQuest() {
                                         <button 
                                             className={styles.completeExerciseBtn}
                                             onClick={() => handleCompleteWorkout(activeWorkoutItem.id)}
+                                            disabled={isWorkoutActionLoading}
                                         >
-                                            <span className="material-symbols-outlined">verified</span>
-                                            HOÀN THÀNH BÀI TẬP & NHẬN THƯỞNG
+                                            <span className="material-symbols-outlined">{isWorkoutActionLoading ? 'sync' : 'verified'}</span>
+                                            {isWorkoutActionLoading ? 'ĐANG GHI NHẬN...' : 'HOÀN THÀNH BÀI TẬP & NHẬN THƯỞNG'}
                                         </button>
                                     )}
 

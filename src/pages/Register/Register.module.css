@@ -245,6 +245,12 @@
     transform: translateY(-1px);
 }
 
+.actionButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .actionButton span {
     font-size: 20px;
 }

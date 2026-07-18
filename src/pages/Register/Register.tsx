@@ -30,6 +30,7 @@ export default function Register() {
     const [confirmPassword, setConfirmPassword] = useState<string>('');
     const [fullName, setFullName] = useState<string>('');
     const [age, setAge] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [alertConfig, setAlertConfig] = useState<{
         message: string;
         type: 'success' | 'error' | 'info' | 'warning';
@@ -52,6 +53,7 @@ export default function Register() {
 
     const handleRegister = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
+        if (isLoading) return;
         if (password !== confirmPassword) {
             setAlertConfig({
                 title: "MẬT KHẨU KHÔNG KHỚP",
@@ -61,6 +63,7 @@ export default function Register() {
             return;
         }
 
+        setIsLoading(true);
         try {
             const data: RegisterResponse = await apiRequest('/hunter', {
                 method: 'POST',
@@ -94,9 +97,11 @@ export default function Register() {
             console.error("Lỗi kết nối API:", error);
             setAlertConfig({
                 title: "LỖI HỆ THỐNG",
-                message: "Không thể kết nối đến Thần Ma Hệ Thống (Backend).",
+                message: "Không thể kết nối tới hệ thống",
                 type: "error"
             });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -140,6 +145,7 @@ export default function Register() {
                                         placeholder="Choose a username"
                                         value={username}
                                         onChange={(event) => setUsername(event.target.value)}
+                                        disabled={isLoading}
                                         required
                                     />
                                 </div>
@@ -158,6 +164,7 @@ export default function Register() {
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
+                                        disabled={isLoading}
                                         required
                                     />
                                 </div>
@@ -176,6 +183,7 @@ export default function Register() {
                                         placeholder="••••••••"
                                         value={confirmPassword}
                                         onChange={(event) => setConfirmPassword(event.target.value)}
+                                        disabled={isLoading}
                                         required
                                     />
                                 </div>
@@ -194,6 +202,7 @@ export default function Register() {
                                         placeholder="Enter your full name"
                                         value={fullName}
                                         onChange={(event) => setFullName(event.target.value)}
+                                        disabled={isLoading}
                                         required
                                     />
                                 </div>
@@ -212,6 +221,7 @@ export default function Register() {
                                         placeholder="Enter your age"
                                         value={age || ''}
                                         onChange={(event) => setAge(Number(event.target.value))}
+                                        disabled={isLoading}
                                         required
                                     />
                                 </div>
@@ -219,9 +229,18 @@ export default function Register() {
 
                             {/* Actions */}
                             <div className={styles.actionWrapper}>
-                                <button className={styles.actionButton} type="submit">
-                                    <span className="material-symbols-outlined">person_add</span>
-                                    Awaken
+                                <button className={styles.actionButton} type="submit" disabled={isLoading}>
+                                    {isLoading ? (
+                                        <>
+                                            <span className="material-symbols-outlined animate-spin">sync</span>
+                                            Awakening...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">person_add</span>
+                                            Awaken
+                                        </>
+                                    )}
                                 </button>
 
                                 <div className={styles.footerLink}>
