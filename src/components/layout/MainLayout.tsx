@@ -60,7 +60,7 @@ export default function MainLayout() {
                     }
                 }
             } catch (e) {
-                console.error("Lỗi lấy thông tin Quest tại Layout:", e);
+                console.error("Failed to fetch quest information in the layout:", e);
             }
         }
     };
@@ -99,7 +99,7 @@ export default function MainLayout() {
                         setRankTier(profileData.rankTier || "E RANK");
                     }
                 } catch (e) {
-                    console.error("Lỗi lấy profile từ /auth/me tại Layout:", e);
+                    console.error("Failed to fetch the profile from /auth/me in the layout:", e);
                 }
             }
         };
@@ -119,7 +119,7 @@ export default function MainLayout() {
                     body: JSON.stringify({ token }),
                 });
             } catch (e) {
-                console.error("Lỗi gọi API logout:", e);
+                console.error("Logout API request failed:", e);
             }
         }
         sessionStorage.removeItem('token');

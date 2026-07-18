@@ -66,7 +66,7 @@ export default function Profile() {
                 }
             }
         } catch (error: any) {
-            console.error("Lỗi đồng bộ dữ liệu hồ sơ từ API:", error);
+            console.error("Failed to synchronize profile data from the API:", error);
         } finally {
             setLoading(false);
         }
@@ -94,12 +94,12 @@ export default function Profile() {
         setErrorMsg('');
         
         if (!fullName.trim()) {
-            setErrorMsg('Tên thợ săn không được để trống');
+            setErrorMsg('Hunter name cannot be empty.');
             return;
         }
         
         if (age < 16) {
-            setErrorMsg('Thợ săn phải từ 16 tuổi trở lên mới được thức tỉnh');
+            setErrorMsg('A Hunter must be at least 16 years old to awaken.');
             return;
         }
 
@@ -132,20 +132,20 @@ export default function Profile() {
             await fetchProfile();
             window.dispatchEvent(new Event('profileUpdated'));
             setAlertConfig({
-                title: "CẬP NHẬT THÀNH CÔNG",
-                message: "Hệ thống cập nhật thông tin bản thể thành công!",
+                title: "UPDATE SUCCESSFUL",
+                message: "The System updated your profile successfully.",
                 type: "success"
             });
         } catch (err: any) {
-            console.error("Lỗi khi cập nhật thông tin hồ sơ:", err);
-            setErrorMsg(err.message || 'Không thể cập nhật hồ sơ, vui lòng kiểm tra lại kết nối.');
+            console.error("Failed to update profile:", err);
+            setErrorMsg(err.message || 'Unable to update the profile. Please check your connection.');
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG ĐỒNG BỘ THÔNG TIN BẢN THỂ...</h3></div>;
-    if (!profile) return <div className={styles.centerLoading}><h3>❌ KHÔNG TÌM THẤY DỮ LIỆU THỢ SĂN.</h3></div>;
+    if (loading) return <div className={styles.centerLoading}><h3>⚡ SYNCHRONIZING IDENTITY DATA...</h3></div>;
+    if (!profile) return <div className={styles.centerLoading}><h3>❌ HUNTER DATA NOT FOUND.</h3></div>;
 
     return (
         <div className={styles.profileCanvas}>
@@ -174,7 +174,7 @@ export default function Profile() {
 
                         <h2 className={styles.modalTitle}>
                             <span className="material-symbols-outlined">edit_square</span>
-                            Modify Bản Thể Profile
+                            Modify Hunter Profile
                         </h2>
                         
                         <form className={styles.form} onSubmit={handleSaveProfile}>

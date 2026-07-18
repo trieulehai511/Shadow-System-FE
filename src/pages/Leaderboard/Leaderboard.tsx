@@ -41,7 +41,7 @@ export default function Leaderboard() {
     
 
 if (loading) {
-        return <div className={styles.loading}>Đang tải bảng xếp hạng...</div>;
+        return <div className={styles.loading}>Loading leaderboard...</div>;
     }
 
     if (error) {
@@ -76,13 +76,13 @@ if (loading) {
            
             <div className={styles.headerSection}>
                 <h2 className={styles.title}>HUNTER LEADERBOARD</h2>
-                <p className={styles.subtitle}>BẢNG XẾP HẠNG THỨ BẬC THỢ SĂN TOÀN CẦU</p>
+                <p className={styles.subtitle}>GLOBAL HUNTER RANKINGS</p>
             </div>
 
-            {/* Bảng danh sách thợ săn */}
+            {/* Hunter ranking list */}
             <div className={styles.leaderboardList}>
                 {leaderboardData.map((hunter) => {
-                    // Tạo style highlight đặc biệt cho Top 3
+                    // Apply a special highlight to the top three hunters.
                     let rankClass = styles.normalRank;
                     if (hunter.position === 1) rankClass = styles.top1;
                     if (hunter.position === 2) rankClass = styles.top2;
@@ -90,7 +90,7 @@ if (loading) {
 
                     return (
                         <div key={hunter.hunterCode} className={`${styles.hunterCard} ${rankClass}`}>
-                            {/* Thứ hạng số hoặc Trophy */}
+                            {/* Numeric rank or trophy */}
                             <div className={styles.positionWrapper}>
                                 {hunter.position <= 3 ? (
                                     <span className={`material-symbols-outlined ${styles.trophyIcon} ${styles['top' + hunter.position + 'Icon']}`}>
@@ -113,13 +113,13 @@ if (loading) {
                                 </span>
                             </div>
 
-                            {/* Thông tin chính */}
+                            {/* Main hunter information */}
                             <div className={styles.infoWrapper}>
                                 <div className={styles.fullName}>{hunter.fullName}</div>
                                 <div className={styles.hunterCode}>{hunter.hunterCode}</div>
                             </div>
 
-                            {/* Chỉ số RP và Streak */}
+                            {/* RP and streak statistics */}
                             <div className={styles.statsWrapper}>
                                 <div className={styles.rpValue}>{hunter.currentRp} RP</div>
                                 <div className={styles.streakWrapper}>

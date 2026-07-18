@@ -120,7 +120,7 @@ export function HunterProfileView({ profile, attributeReward, onEdit }: HunterPr
                                 {attributeReward && (
                                     <div className={styles.strengthBuffNotice} role="status">
                                         <span className="material-symbols-outlined">arrow_upward</span>
-                                        <span>{typeof gain === 'number' && gain > 0 ? `+${gain} ${label}` : 'BUFF GHI NHẬN'}</span>
+                                        <span>{typeof gain === 'number' && gain > 0 ? `+${gain} ${label}` : 'BUFF RECORDED'}</span>
                                     </div>
                                 )}
                             </div>

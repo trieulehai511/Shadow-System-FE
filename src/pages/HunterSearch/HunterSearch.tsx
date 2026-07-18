@@ -27,7 +27,7 @@ export default function HunterSearch() {
         setError('');
 
         if (!trimmedHunterCode) {
-            setError('Vui lòng nhập Hunter Code để tìm kiếm profile.');
+            setError('Please enter a Hunter Code to search for a profile.');
             return;
         }
 
@@ -40,17 +40,17 @@ export default function HunterSearch() {
             const profileData = data.result ? data.result : data;
 
             if (!profileData || (data.result === undefined && !data.hunterCode)) {
-                setError('Không tìm thấy profile của Hunter này.');
+                setError('No profile was found for this Hunter.');
                 return;
             }
 
             setProfile(profileData as HunterProfileData);
         } catch (searchError) {
-            console.error('Lỗi tìm kiếm profile theo Hunter Code:', searchError);
+            console.error('Failed to search for a profile by Hunter Code:', searchError);
             setError(
                 searchError instanceof Error
                     ? searchError.message
-                    : 'Không thể tìm kiếm profile. Vui lòng thử lại.'
+                    : 'Unable to search for a profile. Please try again.'
             );
         } finally {
             setLoading(false);
@@ -72,7 +72,7 @@ export default function HunterSearch() {
                     </div>
                     <div>
                         <h1 className={styles.title}>Hunter Search</h1>
-                        <p className={styles.description}>Truy xuất thông tin Thợ săn.</p>
+                        <p className={styles.description}>Retrieve Hunter information.</p>
                     </div>
                 </div>
 
@@ -94,7 +94,7 @@ export default function HunterSearch() {
                                 type="button" 
                                 className={styles.clearBtn} 
                                 onClick={handleClear}
-                                title="Xóa"
+                                title="Clear"
                             >
                                 <span className="material-symbols-outlined">close</span>
                             </button>
@@ -112,7 +112,7 @@ export default function HunterSearch() {
                 {loading && (
                     <div className={styles.loadingState}>
                         <span className={`material-symbols-outlined ${styles.spinning}`}>sync</span>
-                        <span>Đang truy xuất...</span>
+                        <span>Retrieving data...</span>
                     </div>
                 )}
 
@@ -128,7 +128,7 @@ export default function HunterSearch() {
                 {!profile && !loading && !error && (
                     <div className={styles.welcomeState}>
                         <span className="material-symbols-outlined">fingerprint</span>
-                        <p>Đang chờ truy xuất.</p>
+                        <p>Awaiting a Hunter Code.</p>
                     </div>
                 )}
             </section>
@@ -144,5 +144,4 @@ export default function HunterSearch() {
         </div>
     );
 }
-
 

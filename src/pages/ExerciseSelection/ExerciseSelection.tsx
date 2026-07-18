@@ -12,11 +12,11 @@ interface AlertConfig {
 }
 
 const CATEGORIES = [
-    { key: 'CHEST', label: 'Thân trên / Đẩy (CHEST)' },
+    { key: 'CHEST', label: 'Upper Body / Push (CHEST)' },
     { key: 'CALISTHENICS', label: 'Bodyweight (CALISTHENICS)' },
-    { key: 'LEGS', label: 'Thân dưới / Chân (LEGS)' },
-    { key: 'LOWER', label: 'Cơ bổ trợ dưới (LOWER)' },
-    { key: 'CARDIO', label: 'Tim mạch / Bền bỉ (CARDIO)' }
+    { key: 'LEGS', label: 'Lower Body / Legs (LEGS)' },
+    { key: 'LOWER', label: 'Lower Accessory Muscles (LOWER)' },
+    { key: 'CARDIO', label: 'Cardio / Endurance (CARDIO)' }
 ];
 
 export default function ExerciseSelection() {
@@ -73,8 +73,8 @@ export default function ExerciseSelection() {
         if (creating) return;
         if (!newName.trim()) {
             setAlertConfig({
-                title: "THIẾU THÔNG TIN",
-                message: "Tên bài tập không được để trống.",
+                title: "MISSING INFORMATION",
+                message: "Exercise name cannot be empty.",
                 type: "warning"
             });
             return;
@@ -116,18 +116,18 @@ export default function ExerciseSelection() {
             setSelectionMode('custom');
 
             setAlertConfig({
-                title: "TẠO THÀNH CÔNG",
-                message: `Đã tạo thành công bài tập "${createdEx.name}". Bài tập này đã tự động được chọn vào danh sách tập của bạn.`,
+                title: "CREATED SUCCESSFULLY",
+                message: `Exercise "${createdEx.name}" was created and automatically added to your selected exercises.`,
                 type: "success"
             });
 
             resetForm();
             setShowCreateModal(false);
         } catch (err: any) {
-            console.error("Lỗi tạo bài tập mới:", err);
+            console.error("Failed to create a new exercise:", err);
             setAlertConfig({
-                title: "LỖI HỆ THỐNG",
-                message: err.message || "Không thể tạo bài tập mới.",
+                title: "SYSTEM ERROR",
+                message: err.message || "Unable to create a new exercise.",
                 type: "error"
             });
         } finally {
@@ -160,10 +160,10 @@ export default function ExerciseSelection() {
                     setSelectionMode('all');
                 }
             } catch (err: any) {
-                console.error("Lỗi tải danh sách bài tập:", err);
+                console.error("Failed to load the exercise list:", err);
                 setAlertConfig({
-                    title: "LỖI HỆ THỐNG",
-                    message: err.message || "Không thể đồng bộ danh sách bài tập từ hệ thống.",
+                    title: "SYSTEM ERROR",
+                    message: err.message || "Unable to synchronize the exercise list with the System.",
                     type: "error"
                 });
             } finally {
@@ -210,8 +210,8 @@ export default function ExerciseSelection() {
             const invalidCats = CATEGORIES.filter(cat => (categoryCounts[cat.key] || 0) < 6);
             if (invalidCats.length > 0) {
                 setAlertConfig({
-                    title: "HỆ THỐNG TỪ CHỐI",
-                    message: `Mỗi nhóm cơ bắt buộc phải chọn ít nhất 6 bài tập. Nhóm cơ sau chưa đủ: ${invalidCats.map(c => c.key).join(', ')}`,
+                    title: "SYSTEM REJECTED",
+                    message: `Select at least 6 exercises for each muscle group. These groups need more exercises: ${invalidCats.map(c => c.key).join(', ')}`,
                     type: "warning"
                 });
                 return;
@@ -227,17 +227,17 @@ export default function ExerciseSelection() {
             });
 
             setAlertConfig({
-                title: "CẬP NHẬT THÀNH CÔNG",
+                title: "UPDATE SUCCESSFUL",
                 message: selectionMode === 'all'
-                    ? "Hệ thống đã chuyển về chế độ sử dụng tất cả bài tập."
-                    : "Hệ thống đã lưu lại danh sách bài tập lựa chọn của bạn.",
+                    ? "The System is now using all available exercises."
+                    : "The System saved your selected exercise list.",
                 type: "success"
             });
         } catch (err: any) {
-            console.error("Lỗi khi lưu lựa chọn bài tập:", err);
+            console.error("Failed to save exercise selections:", err);
             setAlertConfig({
-                title: "LỖI LƯU THÔNG TIN",
-                message: err.message || "Không thể lưu lựa chọn bài tập vào hệ thống.",
+                title: "SAVE FAILED",
+                message: err.message || "Unable to save exercise selections to the System.",
                 type: "error"
             });
         } finally {
@@ -246,7 +246,7 @@ export default function ExerciseSelection() {
     };
 
     if (loading) {
-        return <div className={styles.centerLoading}><h3>⚡ ĐANG TRUY XUẤT CƠ SỞ DỮ LIỆU BÀI TẬP...</h3></div>;
+        return <div className={styles.centerLoading}><h3>⚡ RETRIEVING EXERCISE DATABASE...</h3></div>;
     }
 
     return (
@@ -256,36 +256,36 @@ export default function ExerciseSelection() {
                 <div className={styles.headerTitleRow}>
                     <div className={styles.titleRow}>
                         <span className="material-symbols-outlined">fitness_center</span>
-                        <h1 className={styles.title}>Lựa chọn bài tập</h1>
+                        <h1 className={styles.title}>Exercise Selection</h1>
                     </div>
                     <button 
                         className={styles.createBtn}
                         onClick={() => setShowCreateModal(true)}
                     >
                         <span className="material-symbols-outlined">add_box</span>
-                        Tạo bài tập mới
+                        Create New Exercise
                     </button>
                 </div>
-                <p className={styles.subtitle}>Thiết lập danh sách bài tập để Hệ thống tự động tạo Nhiệm vụ hàng ngày.</p>
+                <p className={styles.subtitle}>Configure the exercise list used by the System to generate Daily Quests.</p>
             </div>
 
             {/* Mode Selection Panel */}
             <section className={styles.modeSelectionPanel}>
-                <div className={styles.modeTitle}>CHẾ ĐỘ CHỌN BÀI TẬP:</div>
+                <div className={styles.modeTitle}>EXERCISE SELECTION MODE:</div>
                 <div className={styles.modeButtonGroup}>
                     <button 
                         className={`${styles.modeBtn} ${selectionMode === 'all' ? styles.modeBtnActive : ''}`}
                         onClick={() => setSelectionMode('all')}
                     >
                         <span className="material-symbols-outlined">select_all</span>
-                        TẤT CẢ BÀI TẬP HỆ THỐNG
+                        ALL SYSTEM EXERCISES
                     </button>
                     <button 
                         className={`${styles.modeBtn} ${selectionMode === 'custom' ? styles.modeBtnActive : ''}`}
                         onClick={() => setSelectionMode('custom')}
                     >
                         <span className="material-symbols-outlined">tune</span>
-                        TỰ CHỌN BÀI TẬP
+                        CUSTOM EXERCISES
                     </button>
                 </div>
             </section>
@@ -294,7 +294,7 @@ export default function ExerciseSelection() {
                 <section className={styles.allExercisesPanel}>
                     <p className={styles.panelText}>
                         <span className="material-symbols-outlined">info</span>
-                        Chế độ <strong>Tất cả bài tập hệ thống</strong> đang hoạt động. Hệ thống sẽ tự động luân phiên tất cả các bài tập hệ thống hiện có cho Nhiệm vụ hàng ngày của bạn mà không cần điều chỉnh thủ công.
+                        <strong>All System Exercises</strong> mode is active. The System will automatically rotate every available exercise through your Daily Quests.
                     </p>
                     <button 
                         className={styles.saveBtn} 
@@ -302,7 +302,7 @@ export default function ExerciseSelection() {
                         onClick={handleSave}
                     >
                         <span className="material-symbols-outlined">save</span>
-                        {saving ? 'Đang lưu...' : 'Xác nhận chế độ này'}
+                        {saving ? 'Saving...' : 'Confirm This Mode'}
                     </button>
                 </section>
             ) : (
@@ -312,7 +312,7 @@ export default function ExerciseSelection() {
                         <div className={styles.glowDecoration}></div>
                         <h3 className={styles.panelTitle}>
                             <span className="material-symbols-outlined">verified</span>
-                            Trạng thái cấu hình Hệ thống
+                            System Configuration Status
                         </h3>
                         <div className={styles.validationGrid}>
                             {CATEGORIES.map(cat => {
@@ -325,7 +325,7 @@ export default function ExerciseSelection() {
                                     >
                                         <span className={styles.validationCatName}>{cat.key}</span>
                                         <div className={styles.validationProgressRow}>
-                                            <span className={styles.validationCount}>{count} / 6 bài</span>
+                                            <span className={styles.validationCount}>{count} / 6 exercises</span>
                                             <span className={`material-symbols-outlined ${styles.statusIcon}`}>
                                                 {isValid ? 'check_circle' : 'cancel'}
                                             </span>
@@ -344,7 +344,7 @@ export default function ExerciseSelection() {
                         <div className={styles.panelFooter}>
                             <p className={styles.warningHint}>
                                 <span className="material-symbols-outlined">info</span>
-                                Lưu ý: Bạn bắt buộc phải chọn ít nhất 6 bài cho mỗi nhóm cơ để Hệ thống hoạt động chính xác.
+                                Note: Select at least 6 exercises for each muscle group so the System can operate correctly.
                             </p>
                             <button 
                                 className={styles.saveBtn} 
@@ -352,7 +352,7 @@ export default function ExerciseSelection() {
                                 onClick={handleSave}
                             >
                                 <span className="material-symbols-outlined">save</span>
-                                {saving ? 'Đang lưu...' : 'Lưu cấu hình'}
+                                {saving ? 'Saving...' : 'Save Configuration'}
                             </button>
                         </div>
                     </section>
@@ -395,7 +395,7 @@ export default function ExerciseSelection() {
                                                         e.stopPropagation();
                                                         setPreviewExercise(ex);
                                                     }}
-                                                    title="Chi tiết bài tập"
+                                                    title="Exercise details"
                                                 >
                                                     <span className="material-symbols-outlined">info</span>
                                                 </button>
@@ -405,7 +405,7 @@ export default function ExerciseSelection() {
                                 })}
                                 {categoryExercises.length === 0 && (
                                     <div className={styles.emptyCard}>
-                                        Không có bài tập nào thuộc nhóm cơ này.
+                                        No exercises are available for this muscle group.
                                     </div>
                                 )}
                             </div>
@@ -449,10 +449,10 @@ export default function ExerciseSelection() {
                             <div className={styles.detailSection}>
                                 <h3 className={styles.sectionHeader}>
                                     <span className="material-symbols-outlined">description</span>
-                                    MÔ TẢ BÀI TẬP
+                                    EXERCISE DESCRIPTION
                                 </h3>
                                 <p className={styles.sectionText}>
-                                    {previewExercise.description || "Không có mô tả cho bài tập này."}
+                                    {previewExercise.description || "No description is available for this exercise."}
                                 </p>
                             </div>
 
@@ -471,7 +471,7 @@ export default function ExerciseSelection() {
                                 <div className={styles.detailSection}>
                                     <h3 className={`${styles.sectionHeader} ${styles.warningHeader}`}>
                                         <span className="material-symbols-outlined">gpp_maybe</span>
-                                        LƯU Ý AN TOÀN
+                                        SAFETY NOTES
                                     </h3>
                                     <p className={styles.sectionText}>
                                         {previewExercise.safetyTips}
@@ -488,7 +488,7 @@ export default function ExerciseSelection() {
                                         className={styles.videoLinkBtn}
                                     >
                                         <span className="material-symbols-outlined">play_circle</span>
-                                        XEM VIDEO HƯỚNG DẪN
+                                        WATCH TUTORIAL VIDEO
                                     </a>
                                 </div>
                             )}
@@ -511,12 +511,12 @@ export default function ExerciseSelection() {
 
                         <h2 className={styles.modalTitle}>
                             <span className="material-symbols-outlined">add_circle</span>
-                            Tạo bài tập mới
+                            Create New Exercise
                         </h2>
 
                         <form className={styles.form} onSubmit={handleCreateExercise}>
                             <div className={styles.formField}>
-                                <label>Hình ảnh minh họa</label>
+                                <label>Illustration</label>
                                 <div className={styles.imageUploadRow}>
                                     {newImagePreview ? (
                                         <img 
@@ -532,7 +532,7 @@ export default function ExerciseSelection() {
                                     <div className={styles.fileBtnWrapper}>
                                         <button type="button" className={styles.fileBtn}>
                                             <span className="material-symbols-outlined">upload_file</span>
-                                            Chọn ảnh
+                                            Choose Image
                                         </button>
                                         <input 
                                             type="file" 
@@ -545,12 +545,12 @@ export default function ExerciseSelection() {
                             </div>
 
                             <div className={styles.formField}>
-                                <label htmlFor="exerciseName">Tên bài tập</label>
+                                <label htmlFor="exerciseName">Exercise Name</label>
                                 <input 
                                     type="text" 
                                     id="exerciseName" 
                                     className={styles.input} 
-                                    placeholder="Ví dụ: Push Up, Pull Up..." 
+                                    placeholder="For example: Push Up, Pull Up..."
                                     value={newName} 
                                     onChange={(e) => setNewName(e.target.value)} 
                                     required 
@@ -560,7 +560,7 @@ export default function ExerciseSelection() {
 
                             <div className={styles.formGrid}>
                                 <div className={styles.formField}>
-                                    <label htmlFor="categorySelect">Nhóm cơ</label>
+                                    <label htmlFor="categorySelect">Muscle Group</label>
                                     <select 
                                         id="categorySelect" 
                                         className={styles.select} 
@@ -575,7 +575,7 @@ export default function ExerciseSelection() {
                                 </div>
 
                                 <div className={styles.formField}>
-                                    <label htmlFor="statSelect">Chỉ số tác động</label>
+                                    <label htmlFor="statSelect">Target Attribute</label>
                                     <select 
                                         id="statSelect" 
                                         className={styles.select} 
@@ -583,16 +583,16 @@ export default function ExerciseSelection() {
                                         onChange={(e) => setNewTargetStat(e.target.value)}
                                         disabled={creating}
                                     >
-                                        <option value="STR">Sức mạnh (STR)</option>
-                                        <option value="AGI">Khéo léo (AGI)</option>
-                                        <option value="VIT">Thể lực (VIT)</option>
+                                        <option value="STR">Strength (STR)</option>
+                                        <option value="AGI">Agility (AGI)</option>
+                                        <option value="VIT">Vitality (VIT)</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div className={styles.formGrid}>
                                 <div className={styles.formField}>
-                                    <label htmlFor="baseSetsInput">Số Sets mặc định</label>
+                                    <label htmlFor="baseSetsInput">Default Sets</label>
                                     <input 
                                         type="number" 
                                         id="baseSetsInput" 
@@ -606,7 +606,7 @@ export default function ExerciseSelection() {
                                 </div>
 
                                 <div className={styles.formField}>
-                                    <label htmlFor="baseRepsInput">Số Reps mặc định</label>
+                                    <label htmlFor="baseRepsInput">Default Reps</label>
                                     <input 
                                         type="number" 
                                         id="baseRepsInput" 
@@ -621,11 +621,11 @@ export default function ExerciseSelection() {
                             </div>
 
                             <div className={styles.formField}>
-                                <label htmlFor="descriptionInput">Mô tả cách thực hiện</label>
+                                <label htmlFor="descriptionInput">Exercise Instructions</label>
                                 <textarea 
                                     id="descriptionInput" 
                                     className={styles.textarea} 
-                                    placeholder="Hướng dẫn thợ săn cách tập..."
+                                    placeholder="Explain how the Hunter should perform the exercise..."
                                     value={newDescription}
                                     onChange={(e) => setNewDescription(e.target.value)}
                                     disabled={creating}
@@ -633,7 +633,7 @@ export default function ExerciseSelection() {
                             </div>
 
                             <div className={styles.formField}>
-                                <label htmlFor="videoInput">Link video hướng dẫn</label>
+                                <label htmlFor="videoInput">Tutorial Video Link</label>
                                 <input 
                                     type="url" 
                                     id="videoInput" 
@@ -646,11 +646,11 @@ export default function ExerciseSelection() {
                             </div>
 
                             <div className={styles.formField}>
-                                <label htmlFor="safetyTipsInput">Lưu ý an toàn</label>
+                                <label htmlFor="safetyTipsInput">Safety Notes</label>
                                 <textarea 
                                     id="safetyTipsInput" 
                                     className={styles.textarea} 
-                                    placeholder="Lưu ý quan trọng để tránh chấn thương..."
+                                    placeholder="Important guidance to prevent injuries..."
                                     value={newSafetyTips}
                                     onChange={(e) => setNewSafetyTips(e.target.value)}
                                     disabled={creating}
@@ -664,14 +664,14 @@ export default function ExerciseSelection() {
                                     onClick={() => { resetForm(); setShowCreateModal(false); }}
                                     disabled={creating}
                                 >
-                                    Hủy
+                                    Cancel
                                 </button>
                                 <button 
                                     type="submit" 
                                     className={styles.saveBtn} 
                                     disabled={creating}
                                 >
-                                    {creating ? 'Đang tạo...' : 'Tạo bài tập'}
+                                    {creating ? 'Creating...' : 'Create Exercise'}
                                 </button>
                             </div>
                         </form>

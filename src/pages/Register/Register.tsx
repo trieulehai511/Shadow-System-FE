@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styles from './Register.module.css';
 import loginBg from '../../assets/main_screen.png';
@@ -49,8 +49,8 @@ export default function Register() {
 
         if (!trimmedUsername) {
             setAlertConfig({
-                title: "THÔNG TIN KHÔNG HỢP LỆ",
-                message: "Username không được để trống.",
+                title: "INVALID INFORMATION",
+                message: "Username cannot be empty.",
                 type: "warning"
             });
             return;
@@ -58,8 +58,8 @@ export default function Register() {
 
         if (password !== confirmPassword) {
             setAlertConfig({
-                title: "MẬT KHẨU KHÔNG KHỚP",
-                message: "Mật khẩu xác nhận không trùng khớp. Vui lòng nhập lại.",
+                title: "PASSWORDS DO NOT MATCH",
+                message: "The password confirmation does not match. Please try again.",
                 type: "warning"
             });
             return;
@@ -81,8 +81,8 @@ export default function Register() {
 
             if (data.code === 200 && data.result) {
                 setAlertConfig({
-                    title: "HỆ THỐNG XÁC THỰC",
-                    message: "Hệ thống xác nhận bản thể thành công! Vui lòng đăng nhập để tiếp tục.",
+                    title: "SYSTEM AUTHENTICATION",
+                    message: "Your identity has been registered successfully. Please log in to continue.",
                     type: "success",
                     onClose: () => {
                         navigate('/login');
@@ -90,16 +90,16 @@ export default function Register() {
                 });
             } else {
                 setAlertConfig({
-                    title: "XÁC THỰC THẤT BẠI",
-                    message: "Không thể tạo bản thể mới. Vui lòng kiểm tra lại thông tin.",
+                    title: "AUTHENTICATION FAILED",
+                    message: "Unable to create a new identity. Please check your information.",
                     type: "error"
                 });
             }
         } catch (error) {
-            console.error("Lỗi kết nối API:", error);
+            console.error("API connection error:", error);
             setAlertConfig({
-                title: "LỖI HỆ THỐNG",
-                message: "Không thể kết nối tới hệ thống",
+                title: "SYSTEM ERROR",
+                message: "Unable to connect to the system.",
                 type: "error"
             });
         } finally {

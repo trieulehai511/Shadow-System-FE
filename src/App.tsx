@@ -13,11 +13,11 @@ export default function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Trang login nằm riêng lẻ, không có sidebar hay header */}
+                {/* Login and registration pages use a standalone layout. */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
-                {/* Hệ thống bảo mật bắt buộc qua ProtectedRoute và dùng chung MainLayout */}
+                {/* Protected pages share the main application layout. */}
                 <Route 
                     element={
                         <ProtectedRoute>
@@ -25,7 +25,7 @@ export default function App() {
                         </ProtectedRoute>
                     }
                 >
-                    {/* Vào đường dẫn gốc tự động đá qua trang nhiệm vụ */}
+                    {/* Redirect the root route to the daily quest. */}
                     <Route path="/" element={<Navigate to="/daily-quest" replace />} />
                     <Route path="/daily-quest" element={<DailyQuest />} />
                     <Route path="/exercises" element={<ExerciseSelection />} />
@@ -35,7 +35,7 @@ export default function App() {
                     <Route path="/profile" element={<Profile />} />
                 </Route>
 
-                {/* Tự động chuyển hướng nếu gõ sai URL */}
+                {/* Redirect unknown routes to login. */}
                 <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
         </BrowserRouter>

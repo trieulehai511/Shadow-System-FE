@@ -52,7 +52,7 @@ export default function QuestHistory() {
                     setLogs(data.result.content);
                 }
             } catch (error) {
-                console.error("Lỗi đồng bộ nhật ký nhiệm vụ:", error);
+                console.error("Failed to synchronize quest history:", error);
             } finally {
                 setLoading(false);
             }
@@ -61,7 +61,7 @@ export default function QuestHistory() {
         fetchQuestLogs();
     }, [navigate]);
 
-    if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG TRUY XUẤT NHẬT KÝ HỆ THỐNG...</h3></div>;
+    if (loading) return <div className={styles.centerLoading}><h3>⚡ RETRIEVING SYSTEM LOGS...</h3></div>;
 
     // Group logs by logDate
     const groupedLogs = logs.reduce((groups: { [key: string]: QuestLogItem[] }, log) => {
@@ -121,7 +121,7 @@ export default function QuestHistory() {
                                                     <div className={styles.logDetail}>
                                                         <h3 className={styles.exerciseName}>{log.exerciseName}</h3>
                                                         <p className={styles.setsInfo}>
-                                                            Chấp hành hoàn thành: <strong>{log.completedSets}</strong> Sets × <strong>{log.completedReps}</strong> Reps
+                                                            Completed: <strong>{log.completedSets}</strong> Sets × <strong>{log.completedReps}</strong> Reps
                                                         </p>
                                                     </div>
                                                 </div>
@@ -135,8 +135,8 @@ export default function QuestHistory() {
                 ) : (
                     <div className={styles.noLogsCard}>
                         <span className="material-symbols-outlined">info</span>
-                        <h3>KHÔNG CÓ NHẬT KÝ CHẤP HÀNH</h3>
-                        <p>Bạn chưa hoàn thành bất kỳ mục tiêu tập luyện nào được hệ thống giao phó.</p>
+                        <h3>NO COMPLETION LOGS</h3>
+                        <p>You have not completed any training objectives assigned by the System.</p>
                     </div>
                 )}
             </div>

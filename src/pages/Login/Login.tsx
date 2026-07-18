@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
@@ -35,8 +35,8 @@ export default function Login() {
 
         if (!trimmedUsername) {
             setAlertConfig({
-                title: "THÔNG TIN KHÔNG HỢP LỆ",
-                message: "Username không được để trống.",
+                title: "INVALID INFORMATION",
+                message: "Username cannot be empty.",
                 type: "warning"
             });
             return;
@@ -55,8 +55,8 @@ export default function Login() {
                 // Keeping it in session storage makes the system briefing appear once per login.
                 sessionStorage.setItem('shadow_system_entry_pending', 'true');
                 setAlertConfig({
-                    title: "HỆ THỐNG XÁC THỰC",
-                    message: "Liên kết hoàn tất. Hệ Thống đã mở mắt—đừng khiến nó thất vọng.",
+                    title: "SYSTEM AUTHENTICATION",
+                    message: "Connection complete. The System has awakened—do not disappoint it.",
                     type: "success",
                     onClose: () => {
                         navigate('/daily-quest');
@@ -64,16 +64,16 @@ export default function Login() {
                 });
             } else {
                 setAlertConfig({
-                    title: "XÁC THỰC THẤT BẠI",
-                    message: "Bản thể không khớp! Vui lòng kiểm tra lại thông tin.",
+                    title: "AUTHENTICATION FAILED",
+                    message: "Identity mismatch. Please check your credentials.",
                     type: "error"
                 });
             }
         } catch (error) {
-            console.error("Lỗi kết nối API:", error);
+            console.error("API connection error:", error);
             setAlertConfig({
-                title: "LỖI HỆ THỐNG",
-                message: "Không thể kết nối tới hệ thống",
+                title: "SYSTEM ERROR",
+                message: "Unable to connect to the system.",
                 type: "error"
             });
         } finally {

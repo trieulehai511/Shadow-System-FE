@@ -39,20 +39,20 @@ const getAttributes = (response: HunterAttributesResponse): AttributeValues => {
 };
 
 const SYSTEM_BRIEFINGS = [
-    'Bản thể đã được đánh thức. Chỉ thị hôm nay đang chờ; sự trì hoãn sẽ được Hệ Thống ghi nhớ.',
-    'Đừng nhầm sự thoải mái với an toàn. Kẻ chọn nghỉ ngơi sẽ sớm trở thành thứ bị bỏ lại.',
-    'Hệ Thống không quan tâm đến lý do của ngươi. Hoàn thành chỉ thị, hoặc chấp nhận mình vẫn yếu đuối.',
-    'Ngày mới đã bắt đầu. Hãy chứng minh ngươi xứng đáng tiếp tục tồn tại trong cuộc sàng lọc này.',
-    'Mọi hành động đều được ghi nhận. Đặc biệt là khoảnh khắc ngươi định quay lưng với nhiệm vụ.'
+    'Your identity has awakened. Today’s directive awaits; the System will remember any delay.',
+    'Do not mistake comfort for safety. Those who choose rest will soon be left behind.',
+    'The System does not care about your excuses. Complete the directive, or accept your weakness.',
+    'A new day has begun. Prove that you deserve to survive this selection.',
+    'Every action is recorded—especially the moment you consider abandoning your quest.'
 ];
 
 const STRENGTH_MESSAGES = [
-    'Chỉ số thể chất tăng trưởng. Tiếp tục duy trì hoặc đối mặt với đào thải.',
-    'Một giới hạn đã được gỡ bỏ. Đừng tự mãn. Ngươi vẫn còn quá yếu.',
-    'Thể chất đã cải thiện. Hệ thống yêu cầu duy trì cường độ hiện tại.',
-    'Hấp thụ năng lượng hoàn tất. Tỉ lệ sống sót tăng nhẹ.',
-    'Ghi nhận tiến trình tiến hóa mới. Ngừng lại đồng nghĩa với hủy diệt.',
-    'Chỉ thị hoàn thành. Sức mạnh tăng cường. Chuẩn bị cho thử thách tiếp theo.'
+    'Physical attributes increased. Maintain your progress or face elimination.',
+    'A limit has been removed. Do not grow complacent. You are still far too weak.',
+    'Your physical condition has improved. The System requires you to maintain the current intensity.',
+    'Energy absorption complete. Survival probability increased slightly.',
+    'New evolution progress recorded. To stop is to invite destruction.',
+    'Directive complete. Power increased. Prepare for the next challenge.'
 ];
 
 const pickSystemMessage = (messages: string[]) => messages[Math.floor(Math.random() * messages.length)];
@@ -158,7 +158,7 @@ export default function DailyQuest() {
                         setQuestData(null);
                     }
                 } catch (questErr) {
-                    console.error("Lỗi đồng bộ dữ liệu nhiệm vụ hôm nay:", questErr);
+                    console.error("Failed to synchronize today's quest data:", questErr);
                     setQuestData(null);
                 }
 
@@ -169,11 +169,11 @@ export default function DailyQuest() {
                         setQuestLogs(logsData.result.content);
                     }
                 } catch (logsErr) {
-                    console.error("Lỗi lấy nhật ký Quest Logs:", logsErr);
+                    console.error("Failed to retrieve Quest Logs:", logsErr);
                 }
 
             } catch (error) {
-                console.error("Lỗi đồng bộ dữ liệu hệ thống:", error);
+                console.error("Failed to synchronize System data:", error);
             } finally {
                 setLoading(false);
             }
@@ -191,7 +191,7 @@ export default function DailyQuest() {
 
     const handleGenerateQuest = async () => {
         if (!hunterId) {
-            setActionError("Không tìm thấy mã số Thợ Săn của bản thể. Vui lòng tải lại trang.");
+            setActionError("Hunter ID not found. Please reload the page.");
             return;
         }
         if (isGenerating) return;
@@ -216,14 +216,14 @@ export default function DailyQuest() {
                         setQuestLogs(logsData.result.content);
                     }
                 } catch (logsErr) {
-                    console.error("Lỗi lấy nhật ký Quest Logs sau khi khởi tạo:", logsErr);
+                    console.error("Failed to retrieve Quest Logs after initialization:", logsErr);
                 }
             } else {
-                throw new Error("Không thể khởi tạo nhiệm vụ mới từ Hệ thống.");
+                throw new Error("Unable to initialize a new quest from the System.");
             }
         } catch (err: any) {
-            console.error("Lỗi khởi tạo nhiệm vụ:", err);
-            setActionError(err.message || "Khởi tạo nhiệm vụ thất bại.");
+            console.error("Failed to initialize quest:", err);
+            setActionError(err.message || "Quest initialization failed.");
         } finally {
             setIsGenerating(false);
         }
@@ -260,7 +260,7 @@ export default function DailyQuest() {
                 });
             }
         } catch (err) {
-            console.error("Lỗi gửi ping-progress:", err);
+            console.error("Failed to send progress ping:", err);
             setActiveSession((prev) => {
                 if (!prev || prev.itemId !== session.itemId) return prev;
                 const updated = { ...prev, isFinishing: false };
@@ -268,7 +268,7 @@ export default function DailyQuest() {
                 return updated;
             });
             if (showSyncError) {
-                setTimerError("Không thể đồng bộ tiến độ cuối. Vui lòng thử đồng bộ lại.");
+                setTimerError("Unable to synchronize final progress. Please try again.");
             }
         } finally {
             pingInFlightRef.current = false;
@@ -392,7 +392,7 @@ export default function DailyQuest() {
                 saveSessionToStorage(updatedSession);
                 setSelectedPace(parsed.pace);
             } catch (e) {
-                console.error("Lỗi parse session:", e);
+                console.error("Failed to parse the saved session:", e);
                 localStorage.removeItem(`shadow_quest_session_${item.id}`);
                 setActiveSession(null);
             }
@@ -449,8 +449,8 @@ export default function DailyQuest() {
                 setActiveSession(newSession);
             }
         } catch (err: any) {
-            console.error("Lỗi khi bắt đầu bài tập:", err);
-            setTimerError(err.message || "Không thể bắt đầu bài tập.");
+            console.error("Failed to start exercise:", err);
+            setTimerError(err.message || "Unable to start the exercise.");
         } finally {
             setIsWorkoutActionLoading(false);
         }
@@ -524,14 +524,14 @@ export default function DailyQuest() {
                 }
             }
         } catch (err: any) {
-            console.error("Lỗi ghi nhận hoàn thành bài tập:", err);
-            setTimerError(err.message || "Ghi nhận thất bại. Phát hiện cheat thời gian?");
+            console.error("Failed to record exercise completion:", err);
+            setTimerError(err.message || "Completion could not be recorded. Possible time manipulation detected.");
         } finally {
             setIsWorkoutActionLoading(false);
         }
     };
 
-    if (loading) return <div className={styles.centerLoading}><h3>⚡ ĐANG ĐỒNG BỘ DỮ LIỆU HỆ THỐNG...</h3></div>;
+    if (loading) return <div className={styles.centerLoading}><h3>⚡ SYNCHRONIZING SYSTEM DATA...</h3></div>;
 
     // Calculate total completed items
     const completedCount = questData ? questData.questItems.filter(item => item.completed).length : 0;
@@ -542,10 +542,10 @@ export default function DailyQuest() {
         <div className={styles.dashboardCanvas}>
             {entryBriefing && (
                 <SystemAlert
-                    title="CHỈ THỊ HỆ THỐNG"
+                    title="SYSTEM DIRECTIVE"
                     message={entryBriefing}
                     type="warning"
-                    confirmText="TIẾP NHẬN"
+                    confirmText="ACCEPT"
                     onClose={() => setEntryBriefing(null)}
                 />
             )}
@@ -555,21 +555,21 @@ export default function DailyQuest() {
                 <div className={styles.levelUpOverlay} onClick={() => setCompletionReward(null)}>
                     <div className={styles.levelUpCard} onClick={(event) => event.stopPropagation()}>
                         <div className={styles.systemHeader}>
-                            <span className={styles.systemBadge}>HỆ THỐNG</span>
+                            <span className={styles.systemBadge}>SYSTEM</span>
                             <span className={styles.systemStatus}>
                                 {completionReward.questCleared ? 'QUEST CLEARED' : 'UPDATE COMPLETED'}
                             </span>
                         </div>
                         
                         <h2 className={styles.levelUpTitle}>
-                            {completionReward.questCleared ? 'NHIỆM VỤ HOÀN TẤT' : 'THỂ CHẤT TĂNG TRƯỞNG'}
+                            {completionReward.questCleared ? 'QUEST COMPLETE' : 'PHYSICAL GROWTH'}
                         </h2>
                         
                         <p className={styles.levelUpSubtitle}>{completionReward.message}</p>
                         
                         {completionReward.questCleared && ATTRIBUTE_NAMES.some((attribute) => typeof completionReward.attributeGains[attribute] === 'number') && (
                             <div className={styles.attributeList}>
-                                <div className={styles.attributeListTitle}>BIẾN ĐỔI CHỈ SỐ:</div>
+                                <div className={styles.attributeListTitle}>ATTRIBUTE CHANGES:</div>
                                 <div className={styles.attributeGrid}>
                                     {ATTRIBUTE_NAMES.map((attribute) => {
                                         const gain = completionReward.attributeGains[attribute];
@@ -594,14 +594,14 @@ export default function DailyQuest() {
                                         navigate('/profile');
                                     }}
                                 >
-                                    XEM CHỈ SỐ
+                                    VIEW ATTRIBUTES
                                 </button>
                             )}
                             <button
                                 className={styles.levelUpBtn}
                                 onClick={() => setCompletionReward(null)}
                             >
-                                XÁC NHẬN
+                                CONFIRM
                             </button>
                         </div>
                     </div>
@@ -641,10 +641,10 @@ export default function DailyQuest() {
                             <div className={styles.detailSection}>
                                 <h3 className={styles.sectionHeader}>
                                     <span className="material-symbols-outlined">description</span>
-                                    MÔ TẢ BÀI TẬP
+                                    EXERCISE DESCRIPTION
                                 </h3>
                                 <p className={styles.sectionText}>
-                                    {selectedExerciseForModal.description || "Không có mô tả cho bài tập này."}
+                                    {selectedExerciseForModal.description || "No description is available for this exercise."}
                                 </p>
                             </div>
 
@@ -663,7 +663,7 @@ export default function DailyQuest() {
                                 <div className={styles.detailSection}>
                                     <h3 className={`${styles.sectionHeader} ${styles.warningHeader}`}>
                                         <span className="material-symbols-outlined">gpp_maybe</span>
-                                        LƯU Ý AN TOÀN
+                                        SAFETY NOTES
                                     </h3>
                                     <p className={styles.sectionText}>
                                         {selectedExerciseForModal.safetyTips}
@@ -680,7 +680,7 @@ export default function DailyQuest() {
                                         className={styles.videoLinkBtn}
                                     >
                                         <span className="material-symbols-outlined">play_circle</span>
-                                        XEM VIDEO HƯỚNG DẪN
+                                        WATCH TUTORIAL VIDEO
                                     </a>
                                 </div>
                             )}
@@ -718,7 +718,7 @@ export default function DailyQuest() {
                             <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
                             <h2 className={styles.detailTitle}>{activeWorkoutItem.exerciseName}</h2>
                             <p className={styles.detailTarget}>
-                                Mục tiêu: <span className={styles.neonBlue}>{activeWorkoutItem.targetSets} Sets × {activeWorkoutItem.targetReps} Reps</span>
+                                Target: <span className={styles.neonBlue}>{activeWorkoutItem.targetSets} Sets × {activeWorkoutItem.targetReps} Reps</span>
                             </p>
                         </div>
 
@@ -727,10 +727,10 @@ export default function DailyQuest() {
                                 <div className={styles.paceSelectionContainer}>
                                     <h3 className={styles.sectionHeader}>
                                         <span className="material-symbols-outlined">speed</span>
-                                        CHỌN CƯỜNG ĐỘ TẬP LUYỆN
+                                        SELECT TRAINING INTENSITY
                                     </h3>
                                     <p className={styles.paceDescription}>
-                                        Chọn cường độ phù hợp để hệ thống tính kịch bản thời gian tập và nghỉ phù hợp.
+                                        Select an intensity so the System can calculate appropriate training and recovery intervals.
                                     </p>
                                     
                                     <div className={styles.paceCardsRow}>
@@ -744,7 +744,7 @@ export default function DailyQuest() {
                                                     {p === 'STRONG' ? '⚡ STRONG' : p === 'AVERAGE' ? '⚖️ AVERAGE' : '🌱 WEAK'}
                                                 </span>
                                                 <span className={styles.paceSub}>
-                                                    {p === 'STRONG' ? 'Nhanh & Nặng' : p === 'AVERAGE' ? 'Trung bình' : 'Nhẹ nhàng'}
+                                                    {p === 'STRONG' ? 'Fast & Heavy' : p === 'AVERAGE' ? 'Moderate' : 'Light'}
                                                 </span>
                                             </div>
                                         ))}
@@ -755,7 +755,7 @@ export default function DailyQuest() {
                                         onClick={() => handleStartWorkout(activeWorkoutItem)}
                                         disabled={isWorkoutActionLoading}
                                     >
-                                        {isWorkoutActionLoading ? 'ĐANG KÍCH HOẠT...' : 'BẮT ĐẦU TẬP'}
+                                        {isWorkoutActionLoading ? 'ACTIVATING...' : 'START TRAINING'}
                                     </button>
                                     
                                     {timerError && <p className={styles.errorText}>{timerError}</p>}
@@ -791,15 +791,15 @@ export default function DailyQuest() {
                                             </span>
                                             <span className={styles.timerLabel}>
                                                 {activeSession.isFinishing
-                                                    ? 'ĐANG ĐỒNG BỘ KẾT QUẢ'
-                                                    : activeSession.phase === 'training' ? 'TẬP LUYỆN' : 'NGHỈ NGƠI'}
+                                                    ? 'SYNCHRONIZING RESULTS'
+                                                    : activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div className={styles.timerProgressSection}>
                                         <div className={styles.progressLabelRow}>
-                                            <span>Tiến độ (Server ping)</span>
+                                            <span>Progress (Server ping)</span>
                                             <span>
                                                 {activeSession.accumulatedSeconds}s / {activeSession.totalRequiredSeconds}s
                                             </span>
@@ -822,7 +822,7 @@ export default function DailyQuest() {
                                                 <span className="material-symbols-outlined">
                                                     {activeSession.isFinishing ? 'sync' : 'sync_problem'}
                                                 </span>
-                                                {activeSession.isFinishing ? 'ĐANG ĐỒNG BỘ...' : 'ĐỒNG BỘ LẠI'}
+                                                {activeSession.isFinishing ? 'SYNCHRONIZING...' : 'RETRY SYNC'}
                                             </button>
                                         ) : (
                                             <button
@@ -836,12 +836,12 @@ export default function DailyQuest() {
                                                 {activeSession.isPaused ? (
                                                     <>
                                                         <span className="material-symbols-outlined">play_arrow</span>
-                                                        TIẾP TỤC
+                                                        RESUME
                                                     </>
                                                 ) : (
                                                     <>
                                                         <span className="material-symbols-outlined">pause</span>
-                                                        TẠM DỪNG
+                                                        PAUSE
                                                     </>
                                                 )}
                                             </button>
@@ -855,7 +855,7 @@ export default function DailyQuest() {
                                             disabled={isWorkoutActionLoading}
                                         >
                                             <span className="material-symbols-outlined">{isWorkoutActionLoading ? 'sync' : 'verified'}</span>
-                                            {isWorkoutActionLoading ? 'ĐANG GHI NHẬN...' : 'HOÀN THÀNH BÀI TẬP & NHẬN THƯỞNG'}
+                                            {isWorkoutActionLoading ? 'RECORDING...' : 'COMPLETE EXERCISE & CLAIM REWARD'}
                                         </button>
                                     )}
 
@@ -923,11 +923,11 @@ export default function DailyQuest() {
                                 <div className={styles.emptyIconBox}>
                                     <span className="material-symbols-outlined">hourglass_empty</span>
                                 </div>
-                                <h3 className={styles.emptyTitle}>HÔM NAY CHƯA CÓ BÀI TẬP</h3>
+                                <h3 className={styles.emptyTitle}>NO EXERCISES TODAY</h3>
                                 <p className={styles.emptyDescription}>
                                     {questData?.restDay 
-                                        ? "Hôm nay là ngày nghỉ. Muốn thử thách ngày nghỉ mới luôn không?" 
-                                        : "Thợ Săn mới! Hôm nay chưa có nhiệm vụ. Muốn thử thách ngay bây giờ không?"}
+                                        ? "Today is a rest day. Do you want to request a new challenge anyway?"
+                                        : "New Hunter! No quest has been assigned today. Do you want a challenge now?"}
                                 </p>
                                 
                                 {actionError && <p className={styles.actionErrorText}>{actionError}</p>}
@@ -940,12 +940,12 @@ export default function DailyQuest() {
                                     {isGenerating ? (
                                         <>
                                             <span className={`material-symbols-outlined ${styles.spin}`}>sync</span>
-                                            ĐANG KHỞI TẠO CHỈ THỊ...
+                                            INITIALIZING DIRECTIVE...
                                         </>
                                     ) : (
                                         <>
                                             <span className="material-symbols-outlined">bolt</span>
-                                            KHỞI TẠO NHIỆM VỤ HÔM NAY
+                                            INITIALIZE TODAY'S QUEST
                                         </>
                                     )}
                                 </button>
@@ -977,7 +977,7 @@ export default function DailyQuest() {
                                                 <button 
                                                     className={styles.infoBtn}
                                                     onClick={() => setSelectedExerciseForModal(item)}
-                                                    title="Xem chi tiết"
+                                                    title="View details"
                                                 >
                                                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
                                                 </button>
@@ -993,7 +993,7 @@ export default function DailyQuest() {
                                                         className={hasSavedSession ? styles.exerciseResumeButton : styles.exerciseActionButton}
                                                         onClick={() => handleOpenWorkoutModal(item)}
                                                     >
-                                                        {hasSavedSession ? 'Tiếp tục' : 'Tập luyện'}
+                                                        {hasSavedSession ? 'Resume' : 'Train'}
                                                     </button>
                                                 )}
                                             </div>
