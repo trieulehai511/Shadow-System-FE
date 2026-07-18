@@ -40,17 +40,6 @@ export default function Register() {
 
     const navigate = useNavigate();
 
-    // Dynamically inject Material Symbols stylesheet to render the correct icons
-    useEffect(() => {
-        const link = document.createElement('link');
-        link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap';
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
-        return () => {
-            document.head.removeChild(link);
-        };
-    }, []);
-
     const handleRegister = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         if (isLoading) return;
