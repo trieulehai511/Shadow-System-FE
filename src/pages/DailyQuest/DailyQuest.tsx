@@ -150,7 +150,7 @@ export default function DailyQuest() {
 
                 // 1. Fetch quest items
                 try {
-                    const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${usernameParam}`);
+                    const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/today`);
                     if (data.result) {
                         setQuestData(sortByInitialOrder(data.result));
                         window.dispatchEvent(new CustomEvent('questUpdated'));
