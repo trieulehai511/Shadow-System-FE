@@ -28,6 +28,8 @@ export default function Register() {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [confirmPassword, setConfirmPassword] = useState<string>('');
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
     const [fullName, setFullName] = useState<string>('');
     const [age, setAge] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -162,13 +164,25 @@ export default function Register() {
                                     </span>
                                     <input
                                         id="password"
-                                        type="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
                                         disabled={isLoading}
                                         required
                                     />
+                                    <button
+                                        className={styles.passwordToggle}
+                                        type="button"
+                                        onClick={() => setShowPassword((isVisible) => !isVisible)}
+                                        disabled={isLoading}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        aria-pressed={showPassword}
+                                    >
+                                        <span className="material-symbols-outlined" aria-hidden="true">
+                                            {showPassword ? 'visibility_off' : 'visibility'}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -181,13 +195,25 @@ export default function Register() {
                                     </span>
                                     <input
                                         id="confirmPassword"
-                                        type="password"
+                                        type={showConfirmPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
                                         value={confirmPassword}
                                         onChange={(event) => setConfirmPassword(event.target.value)}
                                         disabled={isLoading}
                                         required
                                     />
+                                    <button
+                                        className={styles.passwordToggle}
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword((isVisible) => !isVisible)}
+                                        disabled={isLoading}
+                                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                                        aria-pressed={showConfirmPassword}
+                                    >
+                                        <span className="material-symbols-outlined" aria-hidden="true">
+                                            {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 

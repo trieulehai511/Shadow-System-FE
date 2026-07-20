@@ -16,6 +16,7 @@ type LoginApiResponse = {
 export default function Login() {
     const [username, setUsername] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [alertConfig, setAlertConfig] = useState<{
         message: string;
@@ -139,13 +140,25 @@ export default function Login() {
                                     </span>
                                     <input
                                         id="password"
-                                        type="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
                                         disabled={isLoading}
                                         required
                                     />
+                                    <button
+                                        className={styles.passwordToggle}
+                                        type="button"
+                                        onClick={() => setShowPassword((isVisible) => !isVisible)}
+                                        disabled={isLoading}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        aria-pressed={showPassword}
+                                    >
+                                        <span className="material-symbols-outlined" aria-hidden="true">
+                                            {showPassword ? 'visibility_off' : 'visibility'}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
 

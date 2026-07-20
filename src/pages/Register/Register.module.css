@@ -214,6 +214,45 @@
     outline: none;
 }
 
+.inputShell input:has(+ .passwordToggle) {
+    padding-right: 48px;
+}
+
+.passwordToggle {
+    position: absolute;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: var(--color-on-surface-variant);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.2s ease;
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+    opacity: 1;
+}
+
+.passwordToggle:focus-visible {
+    outline: 2px solid var(--color-on-surface);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.passwordToggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.passwordToggle span {
+    font-size: 20px;
+}
+
 .actionWrapper {
     margin-top: 8px;
     display: flex;
