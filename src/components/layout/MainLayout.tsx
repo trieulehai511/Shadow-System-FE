@@ -287,8 +287,8 @@ export default function MainLayout() {
                                         <div className={styles.penaltyTooltip}>
                                             <h4 className={styles.tooltipTitle}>Penalty Info</h4>
                                             <p className={styles.tooltipDesc}>
-                                                Failure to complete this quest by the deadline will trigger:
-                                                <strong> The Penalty Quest of the Great Desert</strong> (Survive 4 hours).
+                                                Complete both main missions before the deadline to preserve your streak.
+                                                <strong> Bonus challenges are always optional.</strong>
                                             </p>
                                         </div>
                                     )}

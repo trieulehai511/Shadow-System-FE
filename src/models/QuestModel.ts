@@ -7,6 +7,7 @@ export interface QuestItem {
     targetReps: number;
     targetStat: string;
     completed: boolean;
+    type?: 'MAIN' | 'BONUS';
     description?: string;
     tutorialVideoUrl?: string;
     imageUrl?: string;

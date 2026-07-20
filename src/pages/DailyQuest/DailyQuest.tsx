@@ -462,12 +462,16 @@ export default function DailyQuest() {
         try {
             setTimerError(null);
             const token = sessionStorage.getItem('token');
-            const isFinalQuestItem = Boolean(
-                questData && questData.questItems.every((item) => item.id === itemId || item.completed)
+            const isFinalMainQuestItem = Boolean(
+                questData
+                && !questData.completed
+                && questData.questItems
+                    .filter((item) => item.type !== 'BONUS')
+                    .every((item) => item.id === itemId || item.completed)
             );
             let attributesBefore: AttributeValues = {};
 
-            if (isFinalQuestItem) {
+            if (isFinalMainQuestItem) {
                 const profileBefore: HunterAttributesResponse = await apiRequest('/auth/me');
                 attributesBefore = getAttributes(profileBefore);
             }
@@ -488,7 +492,8 @@ export default function DailyQuest() {
                 window.dispatchEvent(new CustomEvent('questUpdated'));
 
                 let attributeGains: AttributeValues = {};
-                if (data.result.completed) {
+                const questJustCleared = !questData?.completed && data.result.completed;
+                if (questJustCleared) {
                     const profileAfter: HunterAttributesResponse = await apiRequest('/auth/me');
                     const attributesAfter = getAttributes(profileAfter);
 
@@ -507,7 +512,7 @@ export default function DailyQuest() {
                     }
                     window.dispatchEvent(new Event('profileUpdated'));
                 }
-                if (data.result.completed) {
+                if (questJustCleared) {
                     setCompletionReward({
                         message: pickSystemMessage(STRENGTH_MESSAGES),
                         questCleared: true,
@@ -533,10 +538,13 @@ export default function DailyQuest() {
 
     if (loading) return <div className={styles.centerLoading}><h3>⚡ SYNCHRONIZING SYSTEM DATA...</h3></div>;
 
-    // Calculate total completed items
-    const completedCount = questData ? questData.questItems.filter(item => item.completed).length : 0;
-    const totalCount = questData ? questData.questItems.length : 0;
-    const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const mainQuestItems = questData?.questItems.filter(item => item.type !== 'BONUS') ?? [];
+    const bonusQuestItems = questData?.questItems.filter(item => item.type === 'BONUS') ?? [];
+    const completedMainCount = mainQuestItems.filter(item => item.completed).length;
+    const completedBonusCount = bonusQuestItems.filter(item => item.completed).length;
+    const progressPercent = mainQuestItems.length > 0
+        ? Math.round((completedMainCount / mainQuestItems.length) * 100)
+        : 0;
 
     return (
         <div className={styles.dashboardCanvas}>
@@ -890,7 +898,7 @@ export default function DailyQuest() {
                     <div className={styles.xpProgressContainer}>
                         <div className={styles.xpTextRow}>
                             <span>EXP Progress</span>
-                            <span>{progressPercent}% ({completedCount} / {totalCount})</span>
+                            <span>{progressPercent}% ({completedMainCount} / {mainQuestItems.length} main)</span>
                         </div>
                         <div className={styles.xpTrack}>
                             <div 
@@ -951,8 +959,23 @@ export default function DailyQuest() {
                                 </button>
                             </div>
                         ) : (
-                            <div className={styles.exercisesList}>
-                                {questData.questItems.map((item) => {
+                            <div className={styles.questGroups}>
+                                {[
+                                    { key: 'main', title: 'Main Missions', subtitle: 'Complete these to clear today’s quest', items: mainQuestItems, bonus: false },
+                                    { key: 'bonus', title: 'Bonus Challenges', subtitle: `${completedBonusCount}/${bonusQuestItems.length} complete · Optional`, items: bonusQuestItems, bonus: true },
+                                ].filter(group => group.items.length > 0).map(group => (
+                                    <section key={group.key} className={`${styles.questGroup} ${group.bonus ? styles.bonusGroup : ''}`}>
+                                        <div className={styles.questGroupHeader}>
+                                            <div>
+                                                <h2 className={styles.questGroupTitle}>{group.title}</h2>
+                                                <p className={styles.questGroupSubtitle}>{group.subtitle}</p>
+                                            </div>
+                                            <span className={group.bonus ? styles.bonusBadge : styles.mainBadge}>
+                                                {group.bonus ? 'OPTIONAL' : 'REQUIRED'}
+                                            </span>
+                                        </div>
+                                        <div className={styles.exercisesList}>
+                                {group.items.map((item) => {
                                     const hasSavedSession = localStorage.getItem(`shadow_quest_session_${item.id}`) !== null;
                                     return (
                                         <div 
@@ -1000,6 +1023,9 @@ export default function DailyQuest() {
                                         </div>
                                     );
                                 })}
+                                        </div>
+                                    </section>
+                                ))}
                             </div>
                         )}
                     </div>
