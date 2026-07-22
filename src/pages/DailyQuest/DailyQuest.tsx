@@ -152,8 +152,14 @@ export default function DailyQuest() {
                 try {
                     const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/today`);
                     if (data.result) {
-                        setQuestData(sortByInitialOrder(data.result));
+                        const sorted = sortByInitialOrder(data.result);
+                        setQuestData(sorted);
                         window.dispatchEvent(new CustomEvent('questUpdated'));
+
+                        const inProgressItem = sorted.questItems.find((item: QuestItem) => item.status === 'IN_PROGRESS');
+                        if (inProgressItem) {
+                            handleOpenWorkoutModal(inProgressItem);
+                        }
                     } else {
                         setQuestData(null);
                     }
@@ -413,11 +419,52 @@ export default function DailyQuest() {
             };
             setActiveSession(newSession);
             saveSessionToStorage(newSession);
+        } else if (item.status === 'IN_PROGRESS' || serverAccumulated > 0) {
+            // Reconstruct session from server status if local storage was empty
+            const secondsPerSet = Math.max(1, item.targetReps * 3);
+            const restSeconds = 60;
+            const totalRequired = ((secondsPerSet * item.targetSets) + (restSeconds * Math.max(0, item.targetSets - 1)));
+            const newSession: ActiveQuestSession = {
+                itemId: item.id,
+                exerciseName: item.exerciseName,
+                pace: 'AVERAGE',
+                secondsPerSet: secondsPerSet,
+                restSeconds: restSeconds,
+                totalRequiredSeconds: totalRequired > 0 ? totalRequired : (serverRequired > 0 ? serverRequired : 100),
+                accumulatedSeconds: serverAccumulated,
+                currentSet: 1,
+                phase: 'training',
+                timeLeft: secondsPerSet,
+                isPaused: true,
+            };
+            setActiveSession(newSession);
+            saveSessionToStorage(newSession);
         } else {
             setActiveSession(null);
             setSelectedPace('AVERAGE');
         }
         setTimerError(null);
+    };
+
+    const handleResetWorkout = async (itemId: string) => {
+        if (isWorkoutActionLoading) return;
+        setIsWorkoutActionLoading(true);
+        try {
+            setTimerError(null);
+            await apiRequest(`/daily-quest/item/${itemId}/reset`, { method: 'POST' });
+            localStorage.removeItem(`shadow_quest_session_${itemId}`);
+            setActiveSession(null);
+            setActiveWorkoutItem(null);
+            const data = await apiRequest('/daily-quest/today');
+            if (data.result) {
+                setQuestData(sortByInitialOrder(data.result));
+            }
+        } catch (err: any) {
+            console.error("Failed to reset exercise:", err);
+            setTimerError(err.message || "Unable to reset the exercise.");
+        } finally {
+            setIsWorkoutActionLoading(false);
+        }
     };
 
     const handleStartWorkout = async (item: QuestItem) => {
@@ -854,6 +901,16 @@ export default function DailyQuest() {
                                                 )}
                                             </button>
                                         )}
+                                        <button
+                                            className={`${styles.controlBtn} ${styles.btnSecondary}`}
+                                            title="Reset exercise progress to start over"
+                                            disabled={isWorkoutActionLoading}
+                                            onClick={() => handleResetWorkout(activeWorkoutItem.id)}
+                                            style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}
+                                        >
+                                            <span className="material-symbols-outlined">restart_alt</span>
+                                            RESET
+                                        </button>
                                     </div>
 
                                     {activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (

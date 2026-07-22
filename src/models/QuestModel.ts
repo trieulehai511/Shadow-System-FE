@@ -8,12 +8,15 @@ export interface QuestItem {
     targetStat: string;
     completed: boolean;
     type?: 'MAIN' | 'BONUS';
+    status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
     description?: string;
     tutorialVideoUrl?: string;
     imageUrl?: string;
     safetyTips?: string;
     accumulatedSeconds?: number;
     requiredSeconds?: number;
+    startedAt?: string;
+    lastPingAt?: string;
 }
 
 export interface DailyQuestResponse {
@@ -21,6 +24,7 @@ export interface DailyQuestResponse {
     questDate: string;
     completed: boolean;
     restDay: boolean;
+    serverTime?: string;
     questItems: QuestItem[];
 }
 
