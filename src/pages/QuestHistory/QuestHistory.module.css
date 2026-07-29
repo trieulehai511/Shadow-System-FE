@@ -4,7 +4,7 @@
     align-items: center;
     width: 100%;
     min-height: 400px;
-    color: var(--color-on-surface);
+    color: var(--color-primary);
     font-family: var(--font-mono);
 }
 
@@ -14,195 +14,235 @@
     max-width: 800px;
     margin: 0 auto;
     color: var(--color-on-surface);
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 4rem 1rem;
 }
 
 .historyHeader {
-    border-bottom: 2px solid var(--color-outline-variant);
-    padding-bottom: var(--spacing-stack-md);
-    margin-bottom: var(--spacing-stack-lg);
+    border-bottom: 1.5px solid var(--color-outline-variant);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
 }
 
-.titleWrapper {
+.titleRow {
     display: flex;
     align-items: center;
-    gap: var(--spacing-stack-sm);
-    color: var(--color-on-surface);
-}
-
-.titleWrapper span {
-    font-size: 32px;
+    justify-content: space-between;
 }
 
 .title {
     font-family: var(--font-display);
     font-size: 32px;
     font-weight: 700;
-    line-height: 40px;
+    line-height: 38px;
     letter-spacing: -0.02em;
     margin: 0;
+    color: var(--color-on-surface);
 }
 
 .subtitle {
     color: var(--color-on-surface-variant);
     font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 24px;
-    margin: 4px 0 0 0;
+    font-size: 14px;
+    line-height: 20px;
+    margin: 8px 0 0 0;
 }
 
-.groupedList {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
+.summarySeparator {
+    color: var(--color-outline-variant);
+    margin: 0 4px;
 }
 
-.dateGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.dateHeader {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 1.5px solid var(--color-outline-variant);
-    padding-bottom: 8px;
+.activeSummary {
     color: var(--color-on-surface);
+    font-weight: 600;
 }
 
-.dateHeader span {
-    font-size: 20px;
+.missedSummary {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.headerIcon {
+    font-size: 32px;
     color: var(--color-on-surface-variant);
 }
 
-.dateHeader h2 {
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-    letter-spacing: 0.02em;
-}
-
 .logContainer {
-    width: 100%;
-}
-
-.logList {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
+}
+
+.dateSection {
+    display: flex;
+    flex-direction: column;
+}
+
+.dateHeaderBtn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 10px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease;
+}
+
+.dateHeaderBtn:hover:not(:disabled) {
+    background-color: var(--color-surface-container);
+}
+
+.dateHeaderDisabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.dateHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.timelineDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.timelineDotMissed {
+    background-color: #f87171;
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+.dateText {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+
+.sectionActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sectionStatus {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+}
+
+.missedStatus {
+    color: #f87171;
+    opacity: 0.8;
+}
+
+.timelineList {
+    display: flex;
+    flex-direction: column;
+    margin-left: 12px;
+    padding-left: 16px;
+    border-left: 1px solid var(--color-outline-variant);
+    margin-top: 4px;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.timelineItem {
+    position: relative;
 }
 
 .logCard {
     background-color: var(--color-surface-container);
-    border: 1.5px solid var(--color-outline-variant);
-    padding: 20px;
-    border-radius: 12px;
-    position: relative;
-    overflow: hidden;
+    border: 1px solid var(--color-outline-variant);
+    padding: 14px 18px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     transition: all 0.2s ease;
 }
 
 .logCard:hover {
-    border-color: var(--color-on-surface-variant);
-    transform: translateY(-2px);
+    border-color: var(--color-primary);
 }
 
-.logHeaderRow {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1.5px solid var(--color-outline-variant);
-    padding-bottom: 10px;
-    margin-bottom: 12px;
-}
-
-.logMeta {
+.logMain {
     display: flex;
     align-items: center;
-    gap: var(--spacing-gutter);
+    gap: 16px;
+    flex: 1;
 }
 
-.logTag {
+.timeText {
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--color-on-surface-variant);
+    min-width: 48px;
 }
 
-.logStatus {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 700;
-    color: #10b981;
-}
-
-.statAccent {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--color-secondary);
-}
-
-.logDetail {
+.logContent {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-unit);
+    gap: 2px;
 }
 
 .exerciseName {
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
-    line-height: 28px;
     margin: 0;
     color: var(--color-on-surface);
 }
 
-.setsInfo {
+.exerciseDetails {
     font-family: var(--font-body);
-    font-size: 16px;
-    line-height: 24px;
-    color: var(--color-on-surface-variant);
-    margin: 0;
-}
-
-.noLogsCard {
-    background-color: var(--color-surface-container);
-    border: 1.5px solid var(--color-outline-variant);
-    border-radius: 12px;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    font-size: 13px;
     color: var(--color-on-surface-variant);
 }
 
-.noLogsCard span {
-    font-size: 48px;
-    margin-bottom: 16px;
+.detailSeparator {
+    color: var(--color-outline-variant);
 }
 
-.noLogsCard h3 {
-    font-family: var(--font-display);
-    font-size: 20px;
-    margin: 0 0 8px 0;
-    color: var(--color-on-surface);
+.statText {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-primary);
 }
 
-.noLogsCard p {
-    font-family: var(--font-body);
-    font-size: 16px;
-    margin: 0;
+.statusBadge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.statusFailed {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.2);
 }
 
 @media (max-width: 768px) {
     .historyCanvas {
-        padding: 1.5rem 0;
+        padding: 1.5rem 0.5rem;
     }
     .logCard {
-        padding: 14px;
+        padding: 12px 14px;
     }
 }
