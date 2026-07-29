@@ -4,7 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
 import styles from './DailyQuest.module.css';
-import type { DailyQuestResponse, QuestItem } from '../../models/QuestModel';
+import type { DailyQuestResponse, QuestItem, ActiveQuestSession, TrainingPace } from '../../models/QuestModel';
 
 type TokenPayload = {
     sub: string;
@@ -29,6 +29,8 @@ const ATTRIBUTE_LABELS: Record<AttributeName, string> = {
     vitality: 'VIT',
 };
 
+const ATTRIBUTE_GAINS_PREFIX = 'shadow_quest_attribute_gains_';
+
 const getAttributes = (response: HunterAttributesResponse): AttributeValues => {
     const profile = response.result ?? response;
     return Object.fromEntries(
@@ -37,6 +39,34 @@ const getAttributes = (response: HunterAttributesResponse): AttributeValues => {
             .map((attribute) => [attribute, profile[attribute]])
     ) as AttributeValues;
 };
+
+const getAttributeGains = (
+    before: AttributeValues,
+    after: AttributeValues
+): AttributeValues =>
+    Object.fromEntries(
+        ATTRIBUTE_NAMES
+            .filter(
+                attribute =>
+                    typeof before[attribute] === 'number' &&
+                    typeof after[attribute] === 'number'
+            )
+            .map(attribute => [
+                attribute,
+                Math.max(0, after[attribute]! - before[attribute]!),
+            ])
+    ) as AttributeValues;
+
+const addAttributeGains = (
+    current: AttributeValues,
+    added: AttributeValues
+): AttributeValues =>
+    Object.fromEntries(
+        ATTRIBUTE_NAMES.map(attribute => [
+            attribute,
+            (current[attribute] ?? 0) + (added[attribute] ?? 0),
+        ])
+    ) as AttributeValues;
 
 const SYSTEM_BRIEFINGS = [
     'Your identity has awakened. Today’s directive awaits; the System will remember any delay.',
@@ -57,20 +87,17 @@ const STRENGTH_MESSAGES = [
 
 const pickSystemMessage = (messages: string[]) => messages[Math.floor(Math.random() * messages.length)];
 
-interface ActiveQuestSession {
-    itemId: string;
-    exerciseName: string;
-    pace: 'STRONG' | 'AVERAGE' | 'WEAK';
-    secondsPerSet: number;
-    restSeconds: number;
-    totalRequiredSeconds: number;
-    accumulatedSeconds: number;
-    currentSet: number;
-    phase: 'training' | 'rest';
-    timeLeft: number;
-    isPaused: boolean;
-    isFinishing?: boolean;
-}
+const hasFinishedWorkoutTimer = (
+    session: ActiveQuestSession | null,
+    item: QuestItem | null
+) =>
+    Boolean(
+        session &&
+        item &&
+        session.phase === 'training' &&
+        session.currentSet >= item.targetSets &&
+        session.timeLeft === 0
+    );
 
 export default function DailyQuest() {
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
@@ -78,7 +105,8 @@ export default function DailyQuest() {
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
     const [activeWorkoutItem, setActiveWorkoutItem] = useState<QuestItem | null>(null);
     const [activeSession, setActiveSession] = useState<ActiveQuestSession | null>(null);
-    const [selectedPace, setSelectedPace] = useState<'STRONG' | 'AVERAGE' | 'WEAK'>('AVERAGE');
+    const [selectedPace, setSelectedPace] = useState<TrainingPace>('AVERAGE');
+    const [preparationStep, setPreparationStep] = useState<number | 'go' | null>(null);
     const [timerError, setTimerError] = useState<string | null>(null);
     const [entryBriefing, setEntryBriefing] = useState<string | null>(null);
     const [completionReward, setCompletionReward] = useState<{
@@ -88,26 +116,33 @@ export default function DailyQuest() {
     } | null>(null);
     const pingTickRef = useRef<number>(0);
     const pingInFlightRef = useRef<boolean>(false);
+    const pauseRequestRef = useRef<Promise<any> | null>(null);
+    const preparationTimersRef = useRef<number[]>([]);
     const navigate = useNavigate();
 
-    // New states for generating daily quest
     const [hunterId, setHunterId] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [isWorkoutActionLoading, setIsWorkoutActionLoading] = useState<boolean>(false);
     const [actionError, setActionError] = useState<string | null>(null);
     
-    // Ref to preserve the initial order of quest items
     const initialOrderRef = useRef<string[]>([]);
 
-    // Helper: sort quest items to match initial order
+    const activeSessionRef = useRef<ActiveQuestSession | null>(null);
+    useEffect(() => {
+        activeSessionRef.current = activeSession;
+    }, [activeSession]);
+
+    const activeWorkoutItemRef = useRef<QuestItem | null>(null);
+    useEffect(() => {
+        activeWorkoutItemRef.current = activeWorkoutItem;
+    }, [activeWorkoutItem]);
+
     const sortByInitialOrder = useCallback((response: DailyQuestResponse): DailyQuestResponse => {
-        // If we don't have an initial order yet, establish it
         if (initialOrderRef.current.length === 0) {
             initialOrderRef.current = response.questItems.map(item => item.id);
             return response;
         }
         
-        // Sort items to match the initial order
         const orderMap = new Map(initialOrderRef.current.map((id, index) => [id, index]));
         const sortedItems = [...response.questItems].sort((a, b) => {
             const orderA = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
@@ -118,75 +153,223 @@ export default function DailyQuest() {
         return { ...response, questItems: sortedItems };
     }, []);
 
-    type QuestLogItem = {
-        id: string;
-        logDate: string;
-        message: string;
-        status: string;
-    };
+    const saveSessionToStorage = useCallback((session: ActiveQuestSession) => {
+        localStorage.setItem(`shadow_quest_session_${session.itemId}`, JSON.stringify(session));
+    }, []);
 
-    type QuestLogApiResponse = {
-        result?: {
-            content: QuestLogItem[];
-        };
-    };
+    const removeSessionFromStorage = useCallback((itemId: string) => {
+        localStorage.removeItem(`shadow_quest_session_${itemId}`);
+    }, []);
 
-    const [questLogs, setQuestLogs] = useState<QuestLogItem[]>([]);
+    const cancelPreparation = useCallback(() => {
+        preparationTimersRef.current.forEach(id => clearTimeout(id));
+        preparationTimersRef.current = [];
+        setPreparationStep(null);
+    }, []);
 
-    useEffect(() => {
-        const fetchDailyQuest = async (): Promise<void> => {
+    useEffect(() => cancelPreparation, [cancelPreparation]);
+
+    const fetchDailyQuest = useCallback(async (): Promise<void> => {
+        try {
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+
+            const decoded = jwtDecode<TokenPayload>(token);
+            const usernameParam = decoded.sub;
+            setHunterId(usernameParam);
+
             try {
-                const token = sessionStorage.getItem('token');
-                if (!token) {
-                    navigate('/login');
-                    return;
-                }
-
-                const decoded = jwtDecode<TokenPayload>(token);
-                const usernameParam = decoded.sub;
-
-                // Set hunterId directly from the JWT subject, which contains the hunter's UUID
-                setHunterId(usernameParam);
-
-                // 1. Fetch quest items
-                try {
-                    const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/today`);
-                    if (data.result) {
-                        const sorted = sortByInitialOrder(data.result);
-                        setQuestData(sorted);
-                        window.dispatchEvent(new CustomEvent('questUpdated'));
-
-                        const inProgressItem = sorted.questItems.find((item: QuestItem) => item.status === 'IN_PROGRESS');
-                        if (inProgressItem) {
-                            handleOpenWorkoutModal(inProgressItem);
-                        }
-                    } else {
-                        setQuestData(null);
-                    }
-                } catch (questErr) {
-                    console.error("Failed to synchronize today's quest data:", questErr);
+                const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/today`);
+                if (data.result) {
+                    const sorted = sortByInitialOrder(data.result);
+                    setQuestData(sorted);
+                    window.dispatchEvent(new CustomEvent('questUpdated'));
+                } else {
                     setQuestData(null);
                 }
-
-                // 2. Fetch Quest Logs from the new API
-                try {
-                    const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
-                    if (logsData.result?.content) {
-                        setQuestLogs(logsData.result.content);
-                    }
-                } catch (logsErr) {
-                    console.error("Failed to retrieve Quest Logs:", logsErr);
-                }
-
-            } catch (error) {
-                console.error("Failed to synchronize System data:", error);
-            } finally {
-                setLoading(false);
+            } catch (questErr) {
+                console.error("Failed to synchronize today's quest data:", questErr);
+                setQuestData(null);
             }
+        } catch (error) {
+            console.error("Failed to synchronize System data:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate, sortByInitialOrder]);
+
+    useEffect(() => {
+        fetchDailyQuest();
+    }, [fetchDailyQuest]);
+
+    const pauseCurrentSession = useCallback(async () => {
+        const current = activeSessionRef.current;
+        if (!current || current.timeLeft === 0) return;
+
+        const paused = current.isPaused ? current : { ...current, isPaused: true };
+        activeSessionRef.current = paused;
+        setActiveSession(paused);
+        saveSessionToStorage(paused);
+
+        if (pauseRequestRef.current) {
+            try {
+                await pauseRequestRef.current;
+            } catch {}
+            return;
+        }
+
+        try {
+            const pauseReq = apiRequest(`/daily-quest/item/${current.itemId}/pause`, { method: 'POST' });
+            pauseRequestRef.current = pauseReq;
+            const response = await pauseReq;
+            const serverAccumulated = response?.result?.accumulatedSeconds ?? paused.accumulatedSeconds;
+
+            setActiveSession((prev) => {
+                if (!prev || prev.itemId !== current.itemId) return prev;
+                const updated = {
+                    ...prev,
+                    accumulatedSeconds: serverAccumulated,
+                    isPaused: true,
+                };
+                activeSessionRef.current = updated;
+                saveSessionToStorage(updated);
+                return updated;
+            });
+
+            setQuestData((prev) =>
+                prev
+                    ? {
+                        ...prev,
+                        questItems: prev.questItems.map(item =>
+                            item.id === current.itemId
+                                ? {
+                                    ...item,
+                                    status: 'PAUSED',
+                                    accumulatedSeconds: serverAccumulated,
+                                }
+                                : item
+                        ),
+                    }
+                    : prev
+            );
+        } catch (err: any) {
+            const staleSessionCodes = [2002, 2004, 2005, 2012];
+            if (staleSessionCodes.includes(err.code)) {
+                removeSessionFromStorage(current.itemId);
+                activeSessionRef.current = null;
+                setActiveSession((prev) => (prev?.itemId === current.itemId ? null : prev));
+                void fetchDailyQuest();
+            } else {
+                console.error("Pause workout error:", err);
+                if (activeWorkoutItemRef.current?.id === current.itemId) {
+                    setTimerError(err.message || "Failed to pause training session.");
+                }
+            }
+        } finally {
+            pauseRequestRef.current = null;
+        }
+    }, [fetchDailyQuest, removeSessionFromStorage, saveSessionToStorage]);
+
+    const beginPreparation = useCallback(
+        (targetSession: ActiveQuestSession, resumeOnServer = false) => {
+            cancelPreparation();
+
+            const paused = { ...targetSession, isPaused: true };
+            activeSessionRef.current = paused;
+            setActiveSession(paused);
+            saveSessionToStorage(paused);
+            setPreparationStep(3);
+
+            const show = (step: number | 'go', delay: number) => {
+                preparationTimersRef.current.push(
+                    window.setTimeout(() => setPreparationStep(step), delay)
+                );
+            };
+
+            show(2, 1000);
+            show(1, 2000);
+            show('go', 3000);
+
+            preparationTimersRef.current.push(
+                window.setTimeout(async () => {
+                    const current = activeSessionRef.current;
+                    if (!current || current.timeLeft <= 0) {
+                        setPreparationStep(null);
+                        preparationTimersRef.current = [];
+                        return;
+                    }
+
+                    try {
+                        let accumulatedSeconds = current.accumulatedSeconds;
+                        if (resumeOnServer) {
+                            if (pauseRequestRef.current) {
+                                await pauseRequestRef.current;
+                            }
+                            const res = await apiRequest(`/daily-quest/item/${current.itemId}/resume`, {
+                                method: 'POST',
+                            });
+                            accumulatedSeconds = res?.result?.accumulatedSeconds ?? accumulatedSeconds;
+                        }
+
+                        const running = {
+                            ...current,
+                            accumulatedSeconds,
+                            isPaused: false,
+                        };
+                        activeSessionRef.current = running;
+                        setActiveSession(running);
+                        saveSessionToStorage(running);
+                        setQuestData(prev =>
+                            prev
+                                ? {
+                                    ...prev,
+                                    questItems: prev.questItems.map(item =>
+                                        item.id === current.itemId
+                                            ? {
+                                                ...item,
+                                                status: 'IN_PROGRESS',
+                                                accumulatedSeconds,
+                                            }
+                                            : item
+                                    ),
+                                }
+                                : prev
+                        );
+                    } catch (err: any) {
+                        console.error("Resume training session failed:", err);
+                        setTimerError(err.message || "Unable to resume training session.");
+                    }
+                    setPreparationStep(null);
+                    preparationTimersRef.current = [];
+                }, 3600)
+            );
+        },
+        [cancelPreparation, saveSessionToStorage]
+    );
+
+    useEffect(() => {
+        const handlePauseOnExit = () => {
+            cancelPreparation();
+            void pauseCurrentSession();
         };
 
-        fetchDailyQuest();
-    }, [navigate, sortByInitialOrder]);
+        window.addEventListener('beforeunload', handlePauseOnExit);
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                handlePauseOnExit();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', handlePauseOnExit);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [cancelPreparation, pauseCurrentSession]);
 
     useEffect(() => {
         if (loading || sessionStorage.getItem('shadow_system_entry_pending') !== 'true') return;
@@ -204,7 +387,6 @@ export default function DailyQuest() {
         setIsGenerating(true);
         setActionError(null);
         try {
-            const token = sessionStorage.getItem('token');
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${hunterId}/generate`, {
                 method: 'POST'
             });
@@ -212,18 +394,6 @@ export default function DailyQuest() {
             if (data.result) {
                 setQuestData(sortByInitialOrder(data.result));
                 window.dispatchEvent(new CustomEvent('questUpdated'));
-                
-                // Refresh Quest Logs
-                try {
-                    const decoded = jwtDecode<TokenPayload>(token || '');
-                    const usernameParam = decoded.sub;
-                    const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
-                    if (logsData.result?.content) {
-                        setQuestLogs(logsData.result.content);
-                    }
-                } catch (logsErr) {
-                    console.error("Failed to retrieve Quest Logs after initialization:", logsErr);
-                }
             } else {
                 throw new Error("Unable to initialize a new quest from the System.");
             }
@@ -233,15 +403,6 @@ export default function DailyQuest() {
         } finally {
             setIsGenerating(false);
         }
-    };
-
-    const activeSessionRef = useRef<ActiveQuestSession | null>(null);
-    useEffect(() => {
-        activeSessionRef.current = activeSession;
-    }, [activeSession]);
-
-    const saveSessionToStorage = (session: ActiveQuestSession) => {
-        localStorage.setItem(`shadow_quest_session_${session.itemId}`, JSON.stringify(session));
     };
 
     const syncProgress = useCallback(async (session: ActiveQuestSession, showSyncError = false) => {
@@ -279,9 +440,8 @@ export default function DailyQuest() {
         } finally {
             pingInFlightRef.current = false;
         }
-    }, []);
+    }, [saveSessionToStorage]);
 
-    // Main workout timer and ping loop
     useEffect(() => {
         if (!activeSession || activeSession.isPaused) {
             return;
@@ -289,15 +449,15 @@ export default function DailyQuest() {
 
         const intervalId = setInterval(() => {
             const currentSession = activeSessionRef.current;
+            const item = activeWorkoutItemRef.current;
             const isLastTrainingSecond = Boolean(
                 currentSession &&
-                activeWorkoutItem &&
+                item &&
                 currentSession.phase === 'training' &&
-                currentSession.currentSet >= activeWorkoutItem.targetSets &&
+                currentSession.currentSet >= item.targetSets &&
                 currentSession.timeLeft <= 1
             );
 
-            // Ticking countdown clock
             setActiveSession((prev) => {
                 if (!prev || prev.isPaused) return prev;
 
@@ -307,9 +467,7 @@ export default function DailyQuest() {
 
                 if (nextTimeLeft <= 0) {
                     if (prev.phase === 'training') {
-                        if (activeWorkoutItem && prev.currentSet >= activeWorkoutItem.targetSets) {
-                            // The visible timer ends at the configured duration. Sync the final
-                            // server heartbeat separately instead of extending the last set.
+                        if (activeWorkoutItemRef.current && prev.currentSet >= activeWorkoutItemRef.current.targetSets) {
                             const updated = {
                                 ...prev,
                                 timeLeft: 0,
@@ -339,46 +497,57 @@ export default function DailyQuest() {
                 return updated;
             });
 
-            // Ping progress every 10 active seconds, plus one final sync at 00:00.
             if (currentSession && !currentSession.isPaused) {
                 pingTickRef.current += 1;
-                if (pingTickRef.current >= 10 || isLastTrainingSecond) {
+                if (pingTickRef.current >= 10 && !isLastTrainingSecond) {
                     pingTickRef.current = 0;
-                    void syncProgress(currentSession, isLastTrainingSecond);
+                    void syncProgress(currentSession);
                 }
             }
         }, 1000);
 
         return () => clearInterval(intervalId);
-    }, [activeSession, activeWorkoutItem, syncProgress]);
+    }, [activeSession?.isPaused, activeSession?.itemId, saveSessionToStorage, syncProgress]);
 
-    // Handle Page exit and visibility transitions to prevent cheat timing issues
     useEffect(() => {
-        const handlePauseOnExit = () => {
+        const needsFinalSync =
+            activeSession?.timeLeft === 0 &&
+            activeSession.accumulatedSeconds < activeSession.totalRequiredSeconds;
+
+        if (!needsFinalSync) return;
+
+        let cancelled = false;
+
+        const retryFinalSync = async () => {
             const current = activeSessionRef.current;
-            if (current && !current.isPaused) {
-                const pausedSession = { ...current, isPaused: true };
-                saveSessionToStorage(pausedSession);
-                setActiveSession(pausedSession);
+            if (
+                cancelled ||
+                !current ||
+                current.timeLeft !== 0 ||
+                current.accumulatedSeconds >= current.totalRequiredSeconds
+            ) {
+                return;
             }
+
+            setActiveSession(prev => (prev ? { ...prev, isFinishing: true } : prev));
+            await syncProgress(current, true);
         };
 
-        window.addEventListener('beforeunload', handlePauseOnExit);
-        
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                handlePauseOnExit();
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        void retryFinalSync();
+        const retryInterval = setInterval(retryFinalSync, 5000);
 
         return () => {
-            window.removeEventListener('beforeunload', handlePauseOnExit);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            cancelled = true;
+            clearInterval(retryInterval);
         };
-    }, []);
+    }, [
+        activeSession?.timeLeft,
+        activeSession?.accumulatedSeconds,
+        activeSession?.totalRequiredSeconds,
+        syncProgress,
+    ]);
 
-    const handleOpenWorkoutModal = (item: QuestItem) => {
+    const handleOpenWorkoutModal = async (item: QuestItem) => {
         setActiveWorkoutItem(item);
         pingTickRef.current = 0;
         const saved = localStorage.getItem(`shadow_quest_session_${item.id}`);
@@ -388,7 +557,6 @@ export default function DailyQuest() {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved) as ActiveQuestSession;
-                // Sync local session with the latest accumulated progress from the server
                 const updatedSession: ActiveQuestSession = {
                     ...parsed,
                     accumulatedSeconds: Math.max(parsed.accumulatedSeconds, serverAccumulated),
@@ -397,40 +565,30 @@ export default function DailyQuest() {
                 setActiveSession(updatedSession);
                 saveSessionToStorage(updatedSession);
                 setSelectedPace(parsed.pace);
+                setQuestData(prev => prev ? {
+                    ...prev,
+                    questItems: prev.questItems.map(questItem =>
+                        questItem.id === item.id ? { ...questItem, status: 'IN_PROGRESS' } : questItem
+                    )
+                } : prev);
+                return;
             } catch (e) {
-                console.error("Failed to parse the saved session:", e);
+                console.error("Failed to parse saved session:", e);
                 localStorage.removeItem(`shadow_quest_session_${item.id}`);
-                setActiveSession(null);
             }
-        } else if (serverRequired > 0 && serverAccumulated >= serverRequired) {
-            // Already met on the server, create a pre-completed session state to allow immediate click on Complete
-            const newSession: ActiveQuestSession = {
-                itemId: item.id,
-                exerciseName: item.exerciseName,
-                pace: 'AVERAGE',
-                secondsPerSet: 0,
-                restSeconds: 0,
-                totalRequiredSeconds: serverRequired,
-                accumulatedSeconds: serverAccumulated,
-                currentSet: item.targetSets,
-                phase: 'training',
-                timeLeft: 0,
-                isPaused: true,
-            };
-            setActiveSession(newSession);
-            saveSessionToStorage(newSession);
-        } else if (item.status === 'IN_PROGRESS' || serverAccumulated > 0) {
-            // Reconstruct session from server status if local storage was empty
+        }
+
+        if (item.status === 'IN_PROGRESS' || item.status === 'PAUSED' || serverAccumulated > 0) {
             const secondsPerSet = Math.max(1, item.targetReps * 3);
             const restSeconds = 60;
-            const totalRequired = ((secondsPerSet * item.targetSets) + (restSeconds * Math.max(0, item.targetSets - 1)));
+            const calculatedRequired = (secondsPerSet * item.targetSets) + (restSeconds * Math.max(0, item.targetSets - 1));
             const newSession: ActiveQuestSession = {
                 itemId: item.id,
                 exerciseName: item.exerciseName,
                 pace: 'AVERAGE',
                 secondsPerSet: secondsPerSet,
                 restSeconds: restSeconds,
-                totalRequiredSeconds: totalRequired > 0 ? totalRequired : (serverRequired > 0 ? serverRequired : 100),
+                totalRequiredSeconds: calculatedRequired || serverRequired || 100,
                 accumulatedSeconds: serverAccumulated,
                 currentSet: 1,
                 phase: 'training',
@@ -439,32 +597,19 @@ export default function DailyQuest() {
             };
             setActiveSession(newSession);
             saveSessionToStorage(newSession);
-        } else {
-            setActiveSession(null);
-            setSelectedPace('AVERAGE');
+            return;
         }
+
+        setActiveSession(null);
+        setSelectedPace('AVERAGE');
         setTimerError(null);
     };
 
-    const handleResetWorkout = async (itemId: string) => {
-        if (isWorkoutActionLoading) return;
-        setIsWorkoutActionLoading(true);
-        try {
-            setTimerError(null);
-            await apiRequest(`/daily-quest/item/${itemId}/reset`, { method: 'POST' });
-            localStorage.removeItem(`shadow_quest_session_${itemId}`);
-            setActiveSession(null);
-            setActiveWorkoutItem(null);
-            const data = await apiRequest('/daily-quest/today');
-            if (data.result) {
-                setQuestData(sortByInitialOrder(data.result));
-            }
-        } catch (err: any) {
-            console.error("Failed to reset exercise:", err);
-            setTimerError(err.message || "Unable to reset the exercise.");
-        } finally {
-            setIsWorkoutActionLoading(false);
-        }
+    const handleCloseWorkoutModal = () => {
+        cancelPreparation();
+        setActiveWorkoutItem(null);
+        setTimerError(null);
+        void pauseCurrentSession().finally(fetchDailyQuest);
     };
 
     const handleStartWorkout = async (item: QuestItem) => {
@@ -490,10 +635,15 @@ export default function DailyQuest() {
                     currentSet: 1,
                     phase: 'training',
                     timeLeft: secondsPerSet,
-                    isPaused: false,
+                    isPaused: true,
                 };
-                saveSessionToStorage(newSession);
-                setActiveSession(newSession);
+                setQuestData(prev => prev ? {
+                    ...prev,
+                    questItems: prev.questItems.map(i =>
+                        i.id === item.id ? { ...i, status: 'IN_PROGRESS' } : i
+                    )
+                } : prev);
+                beginPreparation(newSession);
             }
         } catch (err: any) {
             console.error("Failed to start exercise:", err);
@@ -503,81 +653,107 @@ export default function DailyQuest() {
         }
     };
 
-    const handleCompleteWorkout = async (itemId: string) => {
+    const handleResetWorkout = async (itemId: string) => {
         if (isWorkoutActionLoading) return;
+        if (!window.confirm("Are you sure you want to reset this exercise progress?")) return;
+
         setIsWorkoutActionLoading(true);
         try {
             setTimerError(null);
-            const token = sessionStorage.getItem('token');
-            const isFinalMainQuestItem = Boolean(
-                questData
-                && !questData.completed
-                && questData.questItems
-                    .filter((item) => item.type !== 'BONUS')
-                    .every((item) => item.id === itemId || item.completed)
-            );
+            await apiRequest(`/daily-quest/item/${itemId}/reset`, { method: 'POST' });
+            removeSessionFromStorage(itemId);
+            setActiveSession(null);
+            setActiveWorkoutItem(null);
+            await fetchDailyQuest();
+        } catch (err: any) {
+            console.error("Failed to reset exercise:", err);
+            setTimerError(err.message || "Unable to reset the exercise.");
+        } finally {
+            setIsWorkoutActionLoading(false);
+        }
+    };
+
+    const handleCompleteWorkout = async (itemId: string) => {
+        if (!activeWorkoutItem || isWorkoutActionLoading) return;
+        if (
+            !hasFinishedWorkoutTimer(activeSessionRef.current, activeWorkoutItem) ||
+            (activeSessionRef.current?.accumulatedSeconds ?? 0) <
+                (activeSessionRef.current?.totalRequiredSeconds ?? Number.MAX_SAFE_INTEGER)
+        ) {
+            setTimerError("Exercise timer or required training duration is not yet finished.");
+            return;
+        }
+
+        setIsWorkoutActionLoading(true);
+        try {
+            setTimerError(null);
+            const isMainQuestItem = activeWorkoutItem.type !== 'BONUS';
+            const mainItemsBefore = questData?.questItems.filter(item => item.type !== 'BONUS') ?? [];
+            const wasMainQuestCompleted = mainItemsBefore.length > 0 && mainItemsBefore.every(item => item.completed);
             let attributesBefore: AttributeValues = {};
 
-            if (isFinalMainQuestItem) {
-                const profileBefore: HunterAttributesResponse = await apiRequest('/auth/me');
-                attributesBefore = getAttributes(profileBefore);
+            if (isMainQuestItem) {
+                try {
+                    const profileBefore: HunterAttributesResponse = await apiRequest('/auth/me');
+                    attributesBefore = getAttributes(profileBefore);
+                } catch (profileErr) {
+                    console.error("Read attributes before completion error:", profileErr);
+                }
             }
+
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/item/${itemId}/complete`, {
                 method: 'PATCH'
             });
 
             if (data.result) {
-                // Remove from storage
-                localStorage.removeItem(`shadow_quest_session_${itemId}`);
-                
-                // Close modal
+                const quest = data.result;
+                removeSessionFromStorage(itemId);
                 setActiveWorkoutItem(null);
                 setActiveSession(null);
 
-                // Update local state
-                setQuestData(sortByInitialOrder(data.result));
+                const sortedQuest = sortByInitialOrder(quest);
+                setQuestData(sortedQuest);
                 window.dispatchEvent(new CustomEvent('questUpdated'));
 
-                let attributeGains: AttributeValues = {};
-                const questJustCleared = !questData?.completed && data.result.completed;
-                if (questJustCleared) {
-                    const profileAfter: HunterAttributesResponse = await apiRequest('/auth/me');
-                    const attributesAfter = getAttributes(profileAfter);
+                const mainItemsAfter = sortedQuest.questItems.filter(item => item.type !== 'BONUS');
+                const isMainQuestCompleted = mainItemsAfter.length > 0 && mainItemsAfter.every(item => item.completed);
+                const questJustCleared = !wasMainQuestCompleted && isMainQuestCompleted;
 
-                    attributeGains = Object.fromEntries(
-                        ATTRIBUTE_NAMES
-                            .filter((attribute) => typeof attributesBefore[attribute] === 'number' && typeof attributesAfter[attribute] === 'number')
-                            .map((attribute) => [attribute, Math.max(0, attributesAfter[attribute]! - attributesBefore[attribute]!)]),
-                    ) as AttributeValues;
+                let accumulatedAttributeGains: AttributeValues = {};
 
-                    if (ATTRIBUTE_NAMES.some((attribute) => typeof attributesAfter[attribute] === 'number')) {
-                        sessionStorage.setItem('shadow_system_strength_reward', JSON.stringify({
-                            attributeGains,
-                            attributesAfter,
-                            claimedAt: Date.now(),
-                        }));
+                if (isMainQuestItem) {
+                    const storageKey = `${ATTRIBUTE_GAINS_PREFIX}${quest.id}`;
+
+                    try {
+                        const storedGains = localStorage.getItem(storageKey);
+                        accumulatedAttributeGains = storedGains ? JSON.parse(storedGains) : {};
+                    } catch (storageErr) {
+                        console.error("Read accumulated attribute gains error:", storageErr);
                     }
-                    window.dispatchEvent(new Event('profileUpdated'));
+
+                    try {
+                        const profileAfter: HunterAttributesResponse = await apiRequest('/auth/me');
+                        const attributesAfter = getAttributes(profileAfter);
+                        const currentGains = getAttributeGains(attributesBefore, attributesAfter);
+                        accumulatedAttributeGains = addAttributeGains(accumulatedAttributeGains, currentGains);
+                        localStorage.setItem(storageKey, JSON.stringify(accumulatedAttributeGains));
+                    } catch (profileErr) {
+                        console.error("Track attribute gains error:", profileErr);
+                    }
                 }
+
                 if (questJustCleared) {
                     setCompletionReward({
                         message: pickSystemMessage(STRENGTH_MESSAGES),
                         questCleared: true,
-                        attributeGains,
+                        attributeGains: accumulatedAttributeGains,
                     });
-                }
-
-                // Refresh Quest Logs
-                const decoded = jwtDecode<TokenPayload>(token || '');
-                const usernameParam = decoded.sub;
-                const logsData: QuestLogApiResponse = await apiRequest(`/quest-logs/hunter/${usernameParam}?page=0&size=10&sort=logDate,desc`);
-                if (logsData.result?.content) {
-                    setQuestLogs(logsData.result.content);
+                    localStorage.removeItem(`${ATTRIBUTE_GAINS_PREFIX}${quest.id}`);
                 }
             }
         } catch (err: any) {
             console.error("Failed to record exercise completion:", err);
-            setTimerError(err.message || "Completion could not be recorded. Possible time manipulation detected.");
+            setTimerError(err.message || "Completion could not be recorded.");
         } finally {
             setIsWorkoutActionLoading(false);
         }
@@ -746,28 +922,26 @@ export default function DailyQuest() {
 
             {/* ACTIVE WORKOUT TIMER MODAL */}
             {activeWorkoutItem && (
-                <div className={styles.modalOverlay} onClick={() => {
-                    if (activeSession && !activeSession.isPaused) {
-                        const paused = { ...activeSession, isPaused: true };
-                        saveSessionToStorage(paused);
-                        setActiveSession(paused);
-                    }
-                    setActiveWorkoutItem(null);
-                }}>
-                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.modalOverlay} onClick={handleCloseWorkoutModal}>
+                    <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
                         <button 
                             className={styles.closeBtn}
-                            onClick={() => {
-                                if (activeSession && !activeSession.isPaused) {
-                                    const paused = { ...activeSession, isPaused: true };
-                                    saveSessionToStorage(paused);
-                                    setActiveSession(paused);
-                                }
-                                setActiveWorkoutItem(null);
-                            }}
+                            onClick={handleCloseWorkoutModal}
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
+
+                        {/* PREPARATION STEP OVERLAY */}
+                        {preparationStep !== null && (
+                            <div className={styles.prepOverlay}>
+                                <div className={styles.prepContent}>
+                                    <span className={styles.prepLabel}>GET READY</span>
+                                    <span className={`${styles.prepValue} ${preparationStep === 'go' ? styles.prepGo : ''}`}>
+                                        {preparationStep === 'go' ? 'GO!' : preparationStep}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         <div className={styles.exerciseDetailHeader}>
                             <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
@@ -883,9 +1057,11 @@ export default function DailyQuest() {
                                             <button
                                                 className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
                                                 onClick={() => {
-                                                    const updated = { ...activeSession, isPaused: !activeSession.isPaused };
-                                                    saveSessionToStorage(updated);
-                                                    setActiveSession(updated);
+                                                    if (activeSession.isPaused) {
+                                                        beginPreparation(activeSession, true);
+                                                    } else {
+                                                        void pauseCurrentSession();
+                                                    }
                                                 }}
                                             >
                                                 {activeSession.isPaused ? (
@@ -913,7 +1089,7 @@ export default function DailyQuest() {
                                         </button>
                                     </div>
 
-                                    {activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (
+                                    {hasFinishedWorkoutTimer(activeSession, activeWorkoutItem) && activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (
                                         <button 
                                             className={styles.completeExerciseBtn}
                                             onClick={() => handleCompleteWorkout(activeWorkoutItem.id)}
@@ -932,10 +1108,8 @@ export default function DailyQuest() {
                 </div>
             )}
 
-
             {/* BENTO GRID LAYOUT */}
             <div className={styles.bentoGrid}>
-                
                 {/* RANK & LEVEL STATUS */}
                 <section className={styles.statusSection}>
                     <div className={styles.glowDecoration} aria-hidden="true"></div>
@@ -1033,7 +1207,12 @@ export default function DailyQuest() {
                                         </div>
                                         <div className={styles.exercisesList}>
                                 {group.items.map((item) => {
-                                    const hasSavedSession = localStorage.getItem(`shadow_quest_session_${item.id}`) !== null;
+                                    const inProgress = !item.completed && (
+                                        item.status === 'IN_PROGRESS' ||
+                                        item.status === 'PAUSED' ||
+                                        (item.accumulatedSeconds ?? 0) > 0 ||
+                                        activeSession?.itemId === item.id
+                                    );
                                     return (
                                         <div 
                                             key={item.id}
@@ -1051,9 +1230,16 @@ export default function DailyQuest() {
                                                         <div className={styles.pendingDot}></div>
                                                     </div>
                                                 )}
-                                                <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
-                                                    {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
-                                                </span>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
+                                                        {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
+                                                    </span>
+                                                    {inProgress && (
+                                                        <span className={styles.inProgressBadge}>
+                                                            {item.status === 'PAUSED' ? 'PAUSED' : 'IN PROGRESS'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <button 
                                                     className={styles.infoBtn}
                                                     onClick={() => setSelectedExerciseForModal(item)}
@@ -1070,10 +1256,10 @@ export default function DailyQuest() {
                                                     </span>
                                                 ) : (
                                                     <button 
-                                                        className={hasSavedSession ? styles.exerciseResumeButton : styles.exerciseActionButton}
+                                                        className={inProgress ? styles.exerciseResumeButton : styles.exerciseActionButton}
                                                         onClick={() => handleOpenWorkoutModal(item)}
                                                     >
-                                                        {hasSavedSession ? 'Resume' : 'Train'}
+                                                        {inProgress ? 'Resume' : 'Train'}
                                                     </button>
                                                 )}
                                             </div>
@@ -1087,9 +1273,6 @@ export default function DailyQuest() {
                         )}
                     </div>
                 </section>
-
-
-
             </div>
         </div>
     );

@@ -1,4 +1,3 @@
-// src/models/QuestType.ts
 export interface QuestItem {
     id: string;
     exerciseName: string;
@@ -8,7 +7,7 @@ export interface QuestItem {
     targetStat: string;
     completed: boolean;
     type?: 'MAIN' | 'BONUS';
-    status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+    status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'PAUSED' | 'COMPLETED';
     description?: string;
     tutorialVideoUrl?: string;
     imageUrl?: string;
@@ -42,3 +41,21 @@ export interface ExerciseResponse {
     isSystem: boolean;
     hunterId?: string;
 }
+
+export type TrainingPace = 'STRONG' | 'AVERAGE' | 'WEAK';
+
+export interface ActiveQuestSession {
+    itemId: string;
+    exerciseName: string;
+    pace: TrainingPace;
+    secondsPerSet: number;
+    restSeconds: number;
+    totalRequiredSeconds: number;
+    accumulatedSeconds: number;
+    currentSet: number;
+    phase: 'training' | 'rest';
+    timeLeft: number;
+    isPaused: boolean;
+    isFinishing?: boolean;
+}
+
