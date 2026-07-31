@@ -1,0 +1,7 @@
+# Files excluded from the Cloud Build source archive.
+# .env is intentionally included so a Cloud Shell-local file is available to Vite at build time.
+.gcloudignore
+.git
+node_modules
+dist
+*.log
