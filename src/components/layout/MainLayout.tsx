@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest, getAvatarUrl } from '../../services/api';
+import {
+    listenForForegroundMessages,
+    registerCurrentDevice,
+    unregisterCurrentDevice,
+} from '../../services/notifications';
 import styles from './MainLayout.module.css';
 
 type TokenPayload = {
@@ -71,6 +76,40 @@ export default function MainLayout() {
         return () => window.removeEventListener('questUpdated', fetchQuestStatus);
     }, []);
 
+    useEffect(() => {
+        let unsubscribe: (() => void) | undefined;
+        let cancelled = false;
+
+        registerCurrentDevice().catch((error) => {
+            // Notification permission may be denied; it must not block the app.
+            console.error('Unable to register this device for notifications:', error);
+        });
+
+        listenForForegroundMessages((payload) => {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            const notification = new Notification(payload.notification?.title || payload.data?.title || 'SHADOW SYSTEM', {
+                body: payload.notification?.body || payload.data?.body || 'You have a new notification.',
+                icon: '/favicon.svg',
+                data: payload.data,
+            });
+            notification.onclick = () => {
+                window.focus();
+                if (payload.data?.screenToOpen === 'QUEST_DETAIL') {
+                    navigate(`/daily-quest${payload.data.questId ? `?questId=${encodeURIComponent(payload.data.questId)}` : ''}`);
+                }
+                notification.close();
+            };
+        }).then((cleanup) => {
+            if (cancelled) cleanup?.();
+            else unsubscribe = cleanup;
+        }).catch((error) => console.error('Unable to listen for foreground notifications:', error));
+
+        return () => {
+            cancelled = true;
+            unsubscribe?.();
+        };
+    }, [navigate]);
+
     // Autohide mobile tabbar on scroll down, show on scroll up
     useEffect(() => {
         let lastScrollY = window.scrollY;
@@ -113,6 +152,11 @@ export default function MainLayout() {
     const handleLogout = async () => {
         const token = sessionStorage.getItem('token');
         if (token) {
+            try {
+                await unregisterCurrentDevice();
+            } catch (e) {
+                console.error("Device notification token removal failed:", e);
+            }
             try {
                 await apiRequest('/auth/logout', {
                     method: 'POST',
