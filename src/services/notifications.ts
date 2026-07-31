@@ -37,8 +37,9 @@ async function performDeviceRegistration(): Promise<string | null> {
         return null;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
+    // iOS requires requestPermission() to originate from a direct user gesture.
+    // The automatic startup path may only register an already-authorized device.
+    if (Notification.permission !== 'granted') return null;
 
     const registration = await navigator.serviceWorker.register(serviceWorkerUrl());
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -64,13 +65,28 @@ async function performDeviceRegistration(): Promise<string | null> {
  */
 export function registerCurrentDevice(): Promise<string | null> {
     if (!deviceRegistrationPromise) {
-        deviceRegistrationPromise = performDeviceRegistration().catch((error) => {
-            // Allow a later retry when a temporary Firebase/backend failure occurs.
-            deviceRegistrationPromise = null;
-            throw error;
-        });
+        deviceRegistrationPromise = performDeviceRegistration()
+            .then((token) => {
+                // Keep successful registration deduplicated, but allow a button click to retry
+                // when startup could not register because permission was still undecided.
+                if (!token) deviceRegistrationPromise = null;
+                return token;
+            })
+            .catch((error) => {
+                // Allow a later retry when a temporary Firebase/backend failure occurs.
+                deviceRegistrationPromise = null;
+                throw error;
+            });
     }
     return deviceRegistrationPromise;
+}
+
+/** Call only from a click/tap handler so Safari on iOS accepts the permission request. */
+export async function enableNotifications(): Promise<string | null> {
+    if (!('Notification' in window)) return null;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return null;
+    return registerCurrentDevice();
 }
 
 export async function unregisterCurrentDevice(): Promise<void> {

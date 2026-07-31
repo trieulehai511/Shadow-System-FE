@@ -3,6 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest, getAvatarUrl } from '../../services/api';
 import {
+    enableNotifications,
     listenForForegroundMessages,
     registerCurrentDevice,
     unregisterCurrentDevice,
@@ -168,6 +169,18 @@ export default function MainLayout() {
         }
         sessionStorage.removeItem('token');
         navigate('/login');
+    };
+
+    const handleEnableNotifications = async () => {
+        try {
+            const deviceToken = await enableNotifications();
+            if (!deviceToken) {
+                window.alert('Notifications are unavailable. On iPhone, add this app to the Home Screen first.');
+            }
+        } catch (error) {
+            console.error('Unable to enable notifications:', error);
+            window.alert('Unable to enable notifications. Please check the browser permission and try again.');
+        }
     };
 
 
@@ -339,7 +352,7 @@ export default function MainLayout() {
                                 </div>
                             </div>
 
-                            <button className={styles.headerBtn} title="Notifications">
+                            <button className={styles.headerBtn} title="Enable notifications" onClick={handleEnableNotifications}>
                                 <span className="material-symbols-outlined">notifications</span>
                             </button>
 
