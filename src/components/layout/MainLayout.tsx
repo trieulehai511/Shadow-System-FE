@@ -53,7 +53,7 @@ export default function MainLayout() {
     }, []);
 
     const fetchQuestStatus = async () => {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         if (token) {
             try {
                 const decoded = jwtDecode<TokenPayload>(token);
@@ -128,7 +128,7 @@ export default function MainLayout() {
 
     useEffect(() => {
         const fetchProfileData = async () => {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             if (token) {
                 try {
                     const data = await apiRequest('/auth/me');
@@ -151,7 +151,7 @@ export default function MainLayout() {
     }, []);
 
     const handleLogout = async () => {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         if (token) {
             try {
                 await unregisterCurrentDevice();
@@ -167,7 +167,7 @@ export default function MainLayout() {
                 console.error("Logout API request failed:", e);
             }
         }
-        sessionStorage.removeItem('token');
+        localStorage.removeItem('token');
         navigate('/login');
     };
 

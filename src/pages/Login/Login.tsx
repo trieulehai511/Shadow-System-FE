@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
@@ -27,6 +27,13 @@ export default function Login() {
 
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            navigate('/daily-quest', { replace: true });
+        }
+    }, [navigate]);
+
     const handleLogin = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
         if (isLoading) return;
@@ -51,7 +58,7 @@ export default function Login() {
             });
 
             if (data.code === 200 && data.result?.authenticated) {
-                sessionStorage.setItem('token', data.result.token);
+                localStorage.setItem('token', data.result.token);
                 // DailyQuest consumes this flag after the protected area has loaded.
                 // Keeping it in session storage makes the system briefing appear once per login.
                 sessionStorage.setItem('shadow_system_entry_pending', 'true');

@@ -171,7 +171,7 @@ export default function DailyQuest() {
 
     const fetchDailyQuest = useCallback(async (): Promise<void> => {
         try {
-            const token = sessionStorage.getItem('token');
+            const token = localStorage.getItem('token');
             if (!token) {
                 navigate('/login');
                 return;

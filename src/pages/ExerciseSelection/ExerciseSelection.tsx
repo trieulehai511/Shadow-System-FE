@@ -138,7 +138,7 @@ export default function ExerciseSelection() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = sessionStorage.getItem('token');
+                const token = localStorage.getItem('token');
                 if (!token) {
                     navigate('/login');
                     return;

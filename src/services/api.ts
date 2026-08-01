@@ -8,7 +8,7 @@ export async function apiRequest<T = any>(
     endpoint: string,
     options: RequestOptions = {}
 ): Promise<T> {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
     const headers: Record<string, string> = {};
     if (token) {
@@ -34,7 +34,7 @@ export async function apiRequest<T = any>(
     });
 
     if (response.status === 401) {
-        sessionStorage.removeItem('token');
+        localStorage.removeItem('token');
         window.location.href = '/login';
         throw new Error('Unauthorized');
     }
