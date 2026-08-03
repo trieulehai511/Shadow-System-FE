@@ -8,7 +8,44 @@ import {
     registerCurrentDevice,
     unregisterCurrentDevice,
 } from '../../services/notifications';
+import { SettingsModal } from '../profile/SettingsModal';
+import { getMySettings } from '../../services/settingService';
 import styles from './MainLayout.module.css';
+
+function getSecondsUntilMidnightInTimezone(zoneId?: string): number {
+    const now = new Date();
+    if (!zoneId) {
+        const midnight = new Date();
+        midnight.setHours(24, 0, 0, 0);
+        return Math.floor((midnight.getTime() - now.getTime()) / 1000);
+    }
+
+    try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: zoneId,
+            hour12: false,
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric'
+        });
+        
+        const parts = formatter.formatToParts(now);
+        let hour = 0, minute = 0, second = 0;
+        for (const part of parts) {
+            if (part.type === 'hour') hour = parseInt(part.value, 10);
+            if (part.type === 'minute') minute = parseInt(part.value, 10);
+            if (part.type === 'second') second = parseInt(part.value, 10);
+        }
+        if (hour === 24) hour = 0;
+        
+        const elapsedSecondsInDay = hour * 3600 + minute * 60 + second;
+        return 86400 - elapsedSecondsInDay;
+    } catch (e) {
+        const midnight = new Date();
+        midnight.setHours(24, 0, 0, 0);
+        return Math.floor((midnight.getTime() - now.getTime()) / 1000);
+    }
+}
 
 type TokenPayload = {
     sub: string;
@@ -23,18 +60,18 @@ export default function MainLayout() {
     const [hunterName, setHunterName] = useState<string>("Sung Jin-Woo");
     const [avatar, setAvatar] = useState<string>("");
     const [rankTier, setRankTier] = useState<string>("E RANK");
+    const [fullProfile, setFullProfile] = useState<any>(null);
+    const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
     const [questCompleted, setQuestCompleted] = useState<boolean>(false);
     const [penaltyTime, setPenaltyTime] = useState<string>("00:00:00");
     const [showPenaltyInfo, setShowPenaltyInfo] = useState<boolean>(false);
+    const [userZoneId, setUserZoneId] = useState<string>("");
 
-    // Calculate time left until midnight
+    // Calculate time left until midnight based on user's timezone
     useEffect(() => {
         const updateTimer = () => {
-            const now = new Date();
-            const midnight = new Date();
-            midnight.setHours(24, 0, 0, 0);
-            const diffSeconds = Math.floor((midnight.getTime() - now.getTime()) / 1000);
+            const diffSeconds = getSecondsUntilMidnightInTimezone(userZoneId);
             
             if (diffSeconds <= 0) {
                 setPenaltyTime("00:00:00");
@@ -50,7 +87,7 @@ export default function MainLayout() {
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [userZoneId]);
 
     const fetchQuestStatus = async () => {
         const token = localStorage.getItem('token');
@@ -134,6 +171,7 @@ export default function MainLayout() {
                     const data = await apiRequest('/auth/me');
                     const profileData = data.result ? data.result : data;
                     if (profileData) {
+                        setFullProfile(profileData);
                         setHunterName(profileData.fullName || "Sung Jin-Woo");
                         setAvatar(profileData.avatar || "");
                         setRankTier(profileData.rankTier || "E RANK");
@@ -148,6 +186,31 @@ export default function MainLayout() {
         // Listen for profile update event to refresh layout dynamically
         window.addEventListener('profileUpdated', fetchProfileData);
         return () => window.removeEventListener('profileUpdated', fetchProfileData);
+    }, []);
+
+    // Fetch User Settings for Timezone
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const settings = await getMySettings();
+                if (settings?.zoneId) {
+                    setUserZoneId(settings.zoneId);
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings in layout:", e);
+            }
+        };
+
+        fetchSettings();
+        const handleOpenSettings = () => setSettingsOpen(true);
+        window.addEventListener('openSettingsModal', handleOpenSettings);
+        window.addEventListener('settingsUpdated', fetchSettings);
+        window.addEventListener('profileUpdated', fetchSettings);
+        return () => {
+            window.removeEventListener('openSettingsModal', handleOpenSettings);
+            window.removeEventListener('settingsUpdated', fetchSettings);
+            window.removeEventListener('profileUpdated', fetchSettings);
+        };
     }, []);
 
     const handleLogout = async () => {
@@ -284,7 +347,7 @@ export default function MainLayout() {
 
                         <button
                             className={styles.navItem}
-                            onClick={() => navigate('/profile')}
+                            onClick={() => setSettingsOpen(true)}
                             title="Settings"
                         >
                             <span className="material-symbols-outlined">settings</span>
@@ -356,10 +419,14 @@ export default function MainLayout() {
                                 <span className="material-symbols-outlined">notifications</span>
                             </button>
 
+                            <button className={styles.headerBtn} title="Settings" onClick={() => setSettingsOpen(true)}>
+                                <span className="material-symbols-outlined">settings</span>
+                            </button>
+
                             <div
                                 className={styles.headerAvatarWrapper}
                                 onClick={() => navigate('/profile')}
-                                title="View Profile"
+                                title="View Hunter Profile"
                             >
                                 <img
                                     className={styles.headerAvatarImg}
@@ -404,6 +471,14 @@ export default function MainLayout() {
                     </div>
                 </Link>
             </nav>
+            <SettingsModal 
+                isOpen={settingsOpen} 
+                onClose={() => setSettingsOpen(false)} 
+                profile={fullProfile} 
+                onProfileUpdated={() => {
+                    window.dispatchEvent(new Event('profileUpdated'));
+                }} 
+            />
         </div>
     );
 }

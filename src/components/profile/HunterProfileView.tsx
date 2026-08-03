@@ -29,7 +29,6 @@ export type AttributeReward = {
 type HunterProfileViewProps = {
     profile: HunterProfileData;
     attributeReward?: AttributeReward | null;
-    onEdit?: () => void;
 };
 
 const getRankClass = (tier: string = '') => {
@@ -44,7 +43,7 @@ const getRankClass = (tier: string = '') => {
     }
 };
 
-export function HunterProfileView({ profile, attributeReward, onEdit }: HunterProfileViewProps) {
+export function HunterProfileView({ profile, attributeReward }: HunterProfileViewProps) {
     const attributes = [
         { name: 'strength' as const, label: 'STR', icon: 'fitness_center' },
         { name: 'agility' as const, label: 'AGI', icon: 'directions_run' },
@@ -65,11 +64,6 @@ export function HunterProfileView({ profile, attributeReward, onEdit }: HunterPr
                 <div className={styles.profileInfoSection}>
                     <div className={styles.infoRowOne}>
                         <h2 className={styles.userName}>{profile.userName}</h2>
-                        {onEdit && (
-                            <button className={styles.editBtn} onClick={onEdit}>
-                                Edit Profile
-                            </button>
-                        )}
                     </div>
 
                     <div className={styles.infoRowTwo}>
