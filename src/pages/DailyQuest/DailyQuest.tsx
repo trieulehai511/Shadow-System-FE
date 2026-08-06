@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
+import { useSoundEffects } from '../../hooks/useSoundEffects';
 import styles from './DailyQuest.module.css';
 import type { DailyQuestResponse, QuestItem, ActiveQuestSession, TrainingPace } from '../../models/QuestModel';
 
@@ -21,6 +22,17 @@ type AttributeValues = Partial<Record<AttributeName, number>>;
 type HunterAttributesResponse = {
     result?: AttributeValues;
 } & AttributeValues;
+
+type ScreenWakeLockSentinel = EventTarget & {
+    readonly released: boolean;
+    release: () => Promise<void>;
+};
+
+type WakeLockNavigator = Navigator & {
+    wakeLock?: {
+        request: (type: 'screen') => Promise<ScreenWakeLockSentinel>;
+    };
+};
 
 const ATTRIBUTE_NAMES: AttributeName[] = ['strength', 'agility', 'vitality'];
 const ATTRIBUTE_LABELS: Record<AttributeName, string> = {
@@ -100,6 +112,14 @@ const hasFinishedWorkoutTimer = (
     );
 
 export default function DailyQuest() {
+    const {
+        playCancel,
+        playSelectConfirm,
+        playGenerateQuest,
+        playCountdown5s,
+        playSetComplete,
+        playReward,
+    } = useSoundEffects();
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
@@ -118,6 +138,13 @@ export default function DailyQuest() {
     const pingInFlightRef = useRef<boolean>(false);
     const pauseRequestRef = useRef<Promise<any> | null>(null);
     const preparationTimersRef = useRef<number[]>([]);
+    const countdownPhaseRef = useRef<string | null>(null);
+    const previousTimerRef = useRef<{
+        itemId: string;
+        phase: ActiveQuestSession['phase'];
+        timeLeft: number;
+    } | null>(null);
+    const wakeLockRef = useRef<ScreenWakeLockSentinel | null>(null);
     const navigate = useNavigate();
 
     const [hunterId, setHunterId] = useState<string | null>(null);
@@ -131,6 +158,124 @@ export default function DailyQuest() {
     useEffect(() => {
         activeSessionRef.current = activeSession;
     }, [activeSession]);
+
+    useEffect(() => {
+        if (!activeSession) {
+            previousTimerRef.current = null;
+            return;
+        }
+
+        const previous = previousTimerRef.current;
+        const sameWorkout = previous?.itemId === activeSession.itemId;
+        const movedFromTrainingToRest = sameWorkout
+            && previous?.phase === 'training'
+            && activeSession.phase === 'rest';
+        const finishedFinalTrainingSet = sameWorkout
+            && previous?.phase === 'training'
+            && activeSession.phase === 'training'
+            && previous.timeLeft > 0
+            && activeSession.timeLeft === 0;
+
+        if (movedFromTrainingToRest || finishedFinalTrainingSet) {
+            playSetComplete();
+        }
+
+        previousTimerRef.current = {
+            itemId: activeSession.itemId,
+            phase: activeSession.phase,
+            timeLeft: activeSession.timeLeft,
+        };
+    }, [activeSession, playSetComplete]);
+
+    useEffect(() => {
+        if (!activeSession || activeSession.isPaused || activeSession.timeLeft !== 4) return;
+
+        const phaseKey = `${activeSession.itemId}-${activeSession.currentSet}-${activeSession.phase}`;
+        if (countdownPhaseRef.current === phaseKey) return;
+
+        countdownPhaseRef.current = phaseKey;
+        playCountdown5s();
+    }, [activeSession, playCountdown5s]);
+
+    const shouldKeepScreenAwake = Boolean(
+        activeWorkoutItem && (
+            preparationStep !== null ||
+            (activeSession && !activeSession.isPaused && activeSession.timeLeft > 0)
+        )
+    );
+
+    useEffect(() => {
+        const wakeLock = (navigator as WakeLockNavigator).wakeLock;
+        if (!wakeLock) return;
+
+        let cancelled = false;
+        let requestInFlight = false;
+
+        const releaseWakeLock = () => {
+            const sentinel = wakeLockRef.current;
+            wakeLockRef.current = null;
+            if (sentinel && !sentinel.released) {
+                void sentinel.release().catch(error => {
+                    console.warn('Wake Lock release failed:', error);
+                });
+            }
+        };
+
+        const requestWakeLock = async () => {
+            if (
+                cancelled ||
+                requestInFlight ||
+                !shouldKeepScreenAwake ||
+                document.visibilityState !== 'visible' ||
+                (wakeLockRef.current && !wakeLockRef.current.released)
+            ) {
+                return;
+            }
+
+            requestInFlight = true;
+            try {
+                const sentinel = await wakeLock.request('screen');
+                if (
+                    cancelled ||
+                    !shouldKeepScreenAwake ||
+                    document.visibilityState !== 'visible'
+                ) {
+                    if (!sentinel.released) await sentinel.release();
+                    return;
+                }
+                wakeLockRef.current = sentinel;
+                sentinel.addEventListener('release', () => {
+                    if (wakeLockRef.current === sentinel) {
+                        wakeLockRef.current = null;
+                    }
+                    if (!cancelled && shouldKeepScreenAwake && document.visibilityState === 'visible') {
+                        window.setTimeout(() => void requestWakeLock(), 0);
+                    }
+                }, { once: true });
+            } catch (error) {
+                if (!cancelled) console.warn('Wake Lock request failed:', error);
+            } finally {
+                requestInFlight = false;
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void requestWakeLock();
+            } else {
+                releaseWakeLock();
+            }
+        };
+
+        if (shouldKeepScreenAwake) void requestWakeLock();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            cancelled = true;
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            releaseWakeLock();
+        };
+    }, [shouldKeepScreenAwake]);
 
     const activeWorkoutItemRef = useRef<QuestItem | null>(null);
     useEffect(() => {
@@ -209,6 +354,8 @@ export default function DailyQuest() {
         const current = activeSessionRef.current;
         if (!current || current.timeLeft === 0) return;
 
+        if (!current.isPaused) playCancel();
+
         const paused = current.isPaused ? current : { ...current, isPaused: true };
         activeSessionRef.current = paused;
         setActiveSession(paused);
@@ -271,11 +418,12 @@ export default function DailyQuest() {
         } finally {
             pauseRequestRef.current = null;
         }
-    }, [fetchDailyQuest, removeSessionFromStorage, saveSessionToStorage]);
+    }, [fetchDailyQuest, playCancel, removeSessionFromStorage, saveSessionToStorage]);
 
     const beginPreparation = useCallback(
         (targetSession: ActiveQuestSession, resumeOnServer = false) => {
             cancelPreparation();
+            playCountdown5s(1);
 
             const paused = { ...targetSession, isPaused: true };
             activeSessionRef.current = paused;
@@ -347,7 +495,7 @@ export default function DailyQuest() {
                 }, 3600)
             );
         },
-        [cancelPreparation, saveSessionToStorage]
+        [cancelPreparation, playCountdown5s, saveSessionToStorage]
     );
 
     useEffect(() => {
@@ -387,6 +535,7 @@ export default function DailyQuest() {
         setIsGenerating(true);
         setActionError(null);
         try {
+            playGenerateQuest();
             const data: DailyQuestApiResponse = await apiRequest(`/daily-quest/hunter/${hunterId}/generate`, {
                 method: 'POST'
             });
@@ -548,6 +697,7 @@ export default function DailyQuest() {
     ]);
 
     const handleOpenWorkoutModal = async (item: QuestItem) => {
+        playSelectConfirm();
         setActiveWorkoutItem(item);
         pingTickRef.current = 0;
         const saved = localStorage.getItem(`shadow_quest_session_${item.id}`);
@@ -607,6 +757,7 @@ export default function DailyQuest() {
 
     const handleCloseWorkoutModal = () => {
         cancelPreparation();
+        playCancel();
         setActiveWorkoutItem(null);
         setTimerError(null);
         void pauseCurrentSession().finally(fetchDailyQuest);
@@ -743,6 +894,7 @@ export default function DailyQuest() {
                 }
 
                 if (questJustCleared) {
+                    playReward();
                     setCompletionReward({
                         message: pickSystemMessage(STRENGTH_MESSAGES),
                         questCleared: true,
@@ -841,11 +993,11 @@ export default function DailyQuest() {
 
             {/* EXERCISE DETAIL MODAL */}
             {selectedExerciseForModal && (
-                <div className={styles.modalOverlay} onClick={() => setSelectedExerciseForModal(null)}>
+                <div className={styles.modalOverlay} onClick={() => { playCancel(); setSelectedExerciseForModal(null); }}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                         <button 
                             className={styles.closeBtn}
-                            onClick={() => setSelectedExerciseForModal(null)}
+                            onClick={() => { playCancel(); setSelectedExerciseForModal(null); }}
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
@@ -967,7 +1119,7 @@ export default function DailyQuest() {
                                             <div 
                                                 key={p}
                                                 className={`${styles.paceCard} ${selectedPace === p ? styles.paceCardActive : ''}`}
-                                                onClick={() => setSelectedPace(p)}
+                                                onClick={() => { playSelectConfirm(); setSelectedPace(p); }}
                                             >
                                                 <span className={styles.paceName}>
                                                     {p === 'STRONG' ? '⚡ STRONG' : p === 'AVERAGE' ? '⚖️ AVERAGE' : '🌱 WEAK'}
@@ -1023,21 +1175,6 @@ export default function DailyQuest() {
                                                     ? 'SYNCHRONIZING RESULTS'
                                                     : activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
                                             </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.timerProgressSection}>
-                                        <div className={styles.progressLabelRow}>
-                                            <span>Progress (Server ping)</span>
-                                            <span>
-                                                {activeSession.accumulatedSeconds}s / {activeSession.totalRequiredSeconds}s
-                                            </span>
-                                        </div>
-                                        <div className={styles.timerProgressBarTrack}>
-                                            <div 
-                                                className={styles.timerProgressBarFill} 
-                                                style={{ width: `${Math.min(100, (activeSession.accumulatedSeconds / activeSession.totalRequiredSeconds) * 100)}%` }}
-                                            />
                                         </div>
                                     </div>
 
@@ -1242,7 +1379,7 @@ export default function DailyQuest() {
                                                 </div>
                                                 <button 
                                                     className={styles.infoBtn}
-                                                    onClick={() => setSelectedExerciseForModal(item)}
+                                                    onClick={() => { playSelectConfirm(); setSelectedExerciseForModal(item); }}
                                                     title="View details"
                                                 >
                                                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>

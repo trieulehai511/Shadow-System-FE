@@ -1697,40 +1697,6 @@
     border-color: var(--color-on-surface-variant);
 }
 
-/* Progress Section */
-.timerProgressSection {
-    width: 100%;
-    background: var(--color-surface-container-highest);
-    border: 1px solid var(--color-outline-variant);
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.progressLabelRow {
-    display: flex;
-    justify-content: space-between;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--color-on-surface-variant);
-}
-
-.timerProgressBarTrack {
-    height: 6px;
-    background: rgba(9, 9, 11, 0.8);
-    border-radius: 9999px;
-    overflow: hidden;
-    position: relative;
-}
-
-.timerProgressBarFill {
-    height: 100%;
-    background: var(--color-primary);
-    transition: width 0.3s ease;
-}
-
 .completeExerciseBtn {
     display: flex;
     align-items: center;
@@ -2024,4 +1990,3 @@
         opacity: 1;
     }
 }
-

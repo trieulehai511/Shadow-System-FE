@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
+import { useSoundEffects } from '../../hooks/useSoundEffects';
 import type { ExerciseResponse } from '../../models/QuestModel';
 import styles from './ExerciseSelection.module.css';
 
@@ -20,6 +21,7 @@ const CATEGORIES = [
 ];
 
 export default function ExerciseSelection() {
+    const { playCancel, playSelectConfirm } = useSoundEffects();
     const [allExercises, setAllExercises] = useState<ExerciseResponse[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [selectionMode, setSelectionMode] = useState<'all' | 'custom'>('all');
@@ -175,6 +177,7 @@ export default function ExerciseSelection() {
     }, [navigate]);
 
     const handleToggleExercise = (id: string) => {
+        playSelectConfirm();
         setSelectedIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) {
@@ -225,6 +228,7 @@ export default function ExerciseSelection() {
                 method: 'POST',
                 body: JSON.stringify(bodyIds)
             });
+            playSelectConfirm();
 
             setAlertConfig({
                 title: "UPDATE SUCCESSFUL",
@@ -418,11 +422,11 @@ export default function ExerciseSelection() {
 
             {/* PREVIEW EXERCISE MODAL */}
             {previewExercise && (
-                <div className={styles.modalOverlay} onClick={() => setPreviewExercise(null)}>
+                <div className={styles.modalOverlay} onClick={() => { playCancel(); setPreviewExercise(null); }}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                         <button 
                             className={styles.closeBtn}
-                            onClick={() => setPreviewExercise(null)}
+                            onClick={() => { playCancel(); setPreviewExercise(null); }}
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
@@ -499,11 +503,21 @@ export default function ExerciseSelection() {
 
             {/* CREATE CUSTOM EXERCISE MODAL */}
             {showCreateModal && (
-                <div className={styles.modalOverlay} onClick={() => { if (!creating) setShowCreateModal(false); }}>
+                <div className={styles.modalOverlay} onClick={() => {
+                    if (!creating) {
+                        playCancel();
+                        setShowCreateModal(false);
+                    }
+                }}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                         <button 
                             className={styles.closeBtn}
-                            onClick={() => { if (!creating) setShowCreateModal(false); }}
+                            onClick={() => {
+                                if (!creating) {
+                                    playCancel();
+                                    setShowCreateModal(false);
+                                }
+                            }}
                             disabled={creating}
                         >
                             <span className="material-symbols-outlined">close</span>
@@ -661,7 +675,7 @@ export default function ExerciseSelection() {
                                 <button 
                                     type="button" 
                                     className={styles.cancelBtn} 
-                                    onClick={() => { resetForm(); setShowCreateModal(false); }}
+                                    onClick={() => { playCancel(); resetForm(); setShowCreateModal(false); }}
                                     disabled={creating}
                                 >
                                     Cancel
