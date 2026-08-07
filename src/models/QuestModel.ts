@@ -1,9 +1,17 @@
+export type ExerciseMetric = 'REPS' | 'DURATION' | 'DISTANCE';
+
 export interface QuestItem {
     id: string;
     exerciseName: string;
     category: string;
     targetSets: number;
     targetReps: number;
+    metric: ExerciseMetric;
+    targetDurationSeconds: number;
+    targetDistanceMeters: number;
+    secondsPerRep: number;
+    secondsPerKilometer: number;
+    baseRestSeconds: number;
     targetStat: string;
     completed: boolean;
     type?: 'MAIN' | 'BONUS';
@@ -34,6 +42,12 @@ export interface ExerciseResponse {
     targetStat: string;
     baseSets: number;
     baseReps: number;
+    metric: ExerciseMetric;
+    baseDurationSeconds: number;
+    baseDistanceMeters: number;
+    secondsPerRep: number;
+    secondsPerKilometer: number;
+    restSeconds: number;
     description?: string;
     tutorialVideoUrl?: string;
     imageUrl?: string;
@@ -58,4 +72,3 @@ export interface ActiveQuestSession {
     isPaused: boolean;
     isFinishing?: boolean;
 }
-

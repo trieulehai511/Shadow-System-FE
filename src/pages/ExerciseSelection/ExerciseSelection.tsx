@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../../services/api';
 import { SystemAlert } from '../../components/SystemAlert';
 import { useSoundEffects } from '../../hooks/useSoundEffects';
-import type { ExerciseResponse } from '../../models/QuestModel';
+import type { ExerciseMetric, ExerciseResponse } from '../../models/QuestModel';
 import styles from './ExerciseSelection.module.css';
 
 interface AlertConfig {
@@ -20,6 +20,16 @@ const CATEGORIES = [
     { key: 'CARDIO', label: 'Cardio / Endurance (CARDIO)' }
 ];
 
+const formatExerciseWork = (exercise: ExerciseResponse) => {
+    if (exercise.metric === 'DURATION') return `${exercise.baseDurationSeconds}s`;
+    if (exercise.metric === 'DISTANCE') {
+        return exercise.baseDistanceMeters >= 1000
+            ? `${exercise.baseDistanceMeters / 1000} km`
+            : `${exercise.baseDistanceMeters} m`;
+    }
+    return `${exercise.baseReps} Reps`;
+};
+
 export default function ExerciseSelection() {
     const { playCancel, playSelectConfirm } = useSoundEffects();
     const [allExercises, setAllExercises] = useState<ExerciseResponse[]>([]);
@@ -33,11 +43,18 @@ export default function ExerciseSelection() {
 
     // Form states for creating exercise
     const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+    const [editingExercise, setEditingExercise] = useState<ExerciseResponse | null>(null);
     const [newName, setNewName] = useState<string>('');
     const [newCategory, setNewCategory] = useState<string>('CHEST');
     const [newTargetStat, setNewTargetStat] = useState<string>('STR');
     const [newBaseSets, setNewBaseSets] = useState<number>(3);
     const [newBaseReps, setNewBaseReps] = useState<number>(10);
+    const [newMetric, setNewMetric] = useState<ExerciseMetric>('REPS');
+    const [newBaseDurationSeconds, setNewBaseDurationSeconds] = useState<number>(45);
+    const [newBaseDistanceMeters, setNewBaseDistanceMeters] = useState<number>(5000);
+    const [newSecondsPerRep, setNewSecondsPerRep] = useState<number>(3);
+    const [newSecondsPerKilometer, setNewSecondsPerKilometer] = useState<number>(360);
+    const [newRestSeconds, setNewRestSeconds] = useState<number>(40);
     const [newDescription, setNewDescription] = useState<string>('');
     const [newTutorialVideoUrl, setNewTutorialVideoUrl] = useState<string>('');
     const [newSafetyTips, setNewSafetyTips] = useState<string>('');
@@ -51,11 +68,39 @@ export default function ExerciseSelection() {
         setNewTargetStat('STR');
         setNewBaseSets(3);
         setNewBaseReps(10);
+        setNewMetric('REPS');
+        setNewBaseDurationSeconds(45);
+        setNewBaseDistanceMeters(5000);
+        setNewSecondsPerRep(3);
+        setNewSecondsPerKilometer(360);
+        setNewRestSeconds(40);
         setNewDescription('');
         setNewTutorialVideoUrl('');
         setNewSafetyTips('');
         setNewImageFile(null);
         setNewImagePreview('');
+        setEditingExercise(null);
+    };
+
+    const openEditModal = (exercise: ExerciseResponse) => {
+        setEditingExercise(exercise);
+        setNewName(exercise.name);
+        setNewCategory(exercise.category);
+        setNewTargetStat(exercise.targetStat);
+        setNewBaseSets(exercise.baseSets);
+        setNewBaseReps(exercise.baseReps);
+        setNewMetric(exercise.metric || 'REPS');
+        setNewBaseDurationSeconds(exercise.baseDurationSeconds || 45);
+        setNewBaseDistanceMeters(exercise.baseDistanceMeters || 5000);
+        setNewSecondsPerRep(exercise.secondsPerRep || 3);
+        setNewSecondsPerKilometer(exercise.secondsPerKilometer || 360);
+        setNewRestSeconds(exercise.restSeconds ?? 40);
+        setNewDescription(exercise.description || '');
+        setNewTutorialVideoUrl(exercise.tutorialVideoUrl || '');
+        setNewSafetyTips(exercise.safetyTips || '');
+        setNewImagePreview(exercise.imageUrl || '');
+        setNewImageFile(null);
+        setShowCreateModal(true);
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,12 +129,44 @@ export default function ExerciseSelection() {
 
         setCreating(true);
         try {
+            if (editingExercise) {
+                const data = await apiRequest(`/exercise/${editingExercise.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        name: newName.trim(), category: newCategory, targetStat: newTargetStat,
+                        baseSets: newBaseSets, baseReps: newMetric === 'REPS' ? newBaseReps : 0,
+                        metric: newMetric,
+                        baseDurationSeconds: newMetric === 'DURATION' ? newBaseDurationSeconds : 0,
+                        baseDistanceMeters: newMetric === 'DISTANCE' ? newBaseDistanceMeters : 0,
+                        secondsPerRep: newSecondsPerRep,
+                        secondsPerKilometer: newSecondsPerKilometer,
+                        restSeconds: newRestSeconds,
+                        description: newDescription.trim(),
+                        tutorialVideoUrl: newTutorialVideoUrl.trim(),
+                        safetyTips: newSafetyTips.trim()
+                    })
+                });
+                const updated: ExerciseResponse = data.result || data;
+                setAllExercises(prev => prev.map(ex => ex.id === updated.id ? updated : ex));
+                setPreviewExercise(prev => prev?.id === updated.id ? updated : prev);
+                setAlertConfig({ title: 'UPDATED SUCCESSFULLY', message: `Exercise "${updated.name}" was updated.`, type: 'success' });
+                resetForm();
+                setShowCreateModal(false);
+                return;
+            }
+
             const formData = new FormData();
             formData.append('name', newName.trim());
             formData.append('category', newCategory);
             formData.append('targetStat', newTargetStat);
             formData.append('baseSets', newBaseSets.toString());
-            formData.append('baseReps', newBaseReps.toString());
+            formData.append('baseReps', (newMetric === 'REPS' ? newBaseReps : 0).toString());
+            formData.append('metric', newMetric);
+            formData.append('baseDurationSeconds', (newMetric === 'DURATION' ? newBaseDurationSeconds : 0).toString());
+            formData.append('baseDistanceMeters', (newMetric === 'DISTANCE' ? newBaseDistanceMeters : 0).toString());
+            formData.append('secondsPerRep', newSecondsPerRep.toString());
+            formData.append('secondsPerKilometer', newSecondsPerKilometer.toString());
+            formData.append('restSeconds', newRestSeconds.toString());
             if (newDescription.trim()) formData.append('description', newDescription.trim());
             if (newTutorialVideoUrl.trim()) formData.append('tutorialVideoUrl', newTutorialVideoUrl.trim());
             if (newSafetyTips.trim()) formData.append('safetyTips', newSafetyTips.trim());
@@ -264,7 +341,7 @@ export default function ExerciseSelection() {
                     </div>
                     <button 
                         className={styles.createBtn}
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={() => { resetForm(); setShowCreateModal(true); }}
                     >
                         <span className="material-symbols-outlined">add_box</span>
                         Create New Exercise
@@ -391,7 +468,7 @@ export default function ExerciseSelection() {
                                             </div>
                                             <div className={styles.cardBody}>
                                                 <span className={styles.exerciseStat}>
-                                                    {ex.baseSets} Sets × {ex.baseReps} Reps ({ex.targetStat})
+                                                    {ex.baseSets} Sets × {formatExerciseWork(ex)} ({ex.targetStat})
                                                 </span>
                                                 <button 
                                                     className={styles.inspectBtn}
@@ -403,6 +480,15 @@ export default function ExerciseSelection() {
                                                 >
                                                     <span className="material-symbols-outlined">info</span>
                                                 </button>
+                                                {!ex.isSystem && (
+                                                    <button
+                                                        className={styles.inspectBtn}
+                                                        onClick={(e) => { e.stopPropagation(); openEditModal(ex); }}
+                                                        title="Edit your exercise"
+                                                    >
+                                                        <span className="material-symbols-outlined">edit</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -466,8 +552,8 @@ export default function ExerciseSelection() {
                                     <span className={styles.statVal}>{previewExercise.baseSets} Sets</span>
                                 </div>
                                 <div className={styles.detailStatCard}>
-                                    <span className={styles.statLabel}>BASE REPS</span>
-                                    <span className={styles.statVal}>{previewExercise.baseReps} Reps</span>
+                                    <span className={styles.statLabel}>BASE WORK</span>
+                                    <span className={styles.statVal}>{formatExerciseWork(previewExercise)}</span>
                                 </div>
                             </div>
 
@@ -506,6 +592,7 @@ export default function ExerciseSelection() {
                 <div className={styles.modalOverlay} onClick={() => {
                     if (!creating) {
                         playCancel();
+                        resetForm();
                         setShowCreateModal(false);
                     }
                 }}>
@@ -515,6 +602,7 @@ export default function ExerciseSelection() {
                             onClick={() => {
                                 if (!creating) {
                                     playCancel();
+                                    resetForm();
                                     setShowCreateModal(false);
                                 }
                             }}
@@ -525,7 +613,7 @@ export default function ExerciseSelection() {
 
                         <h2 className={styles.modalTitle}>
                             <span className="material-symbols-outlined">add_circle</span>
-                            Create New Exercise
+                            {editingExercise ? 'Edit Exercise' : 'Create New Exercise'}
                         </h2>
 
                         <form className={styles.form} onSubmit={handleCreateExercise}>
@@ -543,7 +631,7 @@ export default function ExerciseSelection() {
                                             <span className="material-symbols-outlined">image</span>
                                         </div>
                                     )}
-                                    <div className={styles.fileBtnWrapper}>
+                                    {!editingExercise && <div className={styles.fileBtnWrapper}>
                                         <button type="button" className={styles.fileBtn}>
                                             <span className="material-symbols-outlined">upload_file</span>
                                             Choose Image
@@ -554,7 +642,7 @@ export default function ExerciseSelection() {
                                             className={styles.fileInput}
                                             onChange={handleImageChange}
                                         />
-                                    </div>
+                                    </div>}
                                 </div>
                             </div>
 
@@ -604,6 +692,16 @@ export default function ExerciseSelection() {
                                 </div>
                             </div>
 
+                            <div className={styles.formField}>
+                                <label htmlFor="metricSelect">Tracking Method</label>
+                                <select id="metricSelect" className={styles.select} value={newMetric}
+                                    onChange={(e) => setNewMetric(e.target.value as ExerciseMetric)} disabled={creating}>
+                                    <option value="REPS">Repetitions</option>
+                                    <option value="DURATION">Duration</option>
+                                    <option value="DISTANCE">Distance</option>
+                                </select>
+                            </div>
+
                             <div className={styles.formGrid}>
                                 <div className={styles.formField}>
                                     <label htmlFor="baseSetsInput">Default Sets</label>
@@ -619,7 +717,7 @@ export default function ExerciseSelection() {
                                     />
                                 </div>
 
-                                <div className={styles.formField}>
+                                {newMetric === 'REPS' && <div className={styles.formField}>
                                     <label htmlFor="baseRepsInput">Default Reps</label>
                                     <input 
                                         type="number" 
@@ -631,7 +729,41 @@ export default function ExerciseSelection() {
                                         required
                                         disabled={creating}
                                     />
+                                </div>}
+                            </div>
+
+                            {newMetric === 'REPS' && (
+                                <div className={styles.formField}>
+                                    <label htmlFor="secondsPerRepInput">Seconds per Rep</label>
+                                    <input type="number" id="secondsPerRepInput" min="0.1" step="0.1" className={styles.input}
+                                        value={newSecondsPerRep} onChange={(e) => setNewSecondsPerRep(Number(e.target.value) || 3)} required disabled={creating} />
                                 </div>
+                            )}
+                            {newMetric === 'DURATION' && (
+                                <div className={styles.formField}>
+                                    <label htmlFor="durationInput">Seconds per Set</label>
+                                    <input type="number" id="durationInput" min="1" className={styles.input}
+                                        value={newBaseDurationSeconds} onChange={(e) => setNewBaseDurationSeconds(Number(e.target.value) || 1)} required disabled={creating} />
+                                </div>
+                            )}
+                            {newMetric === 'DISTANCE' && (
+                                <div className={styles.formGrid}>
+                                    <div className={styles.formField}>
+                                        <label htmlFor="distanceInput">Distance (meters)</label>
+                                        <input type="number" id="distanceInput" min="1" className={styles.input}
+                                            value={newBaseDistanceMeters} onChange={(e) => setNewBaseDistanceMeters(Number(e.target.value) || 1)} required disabled={creating} />
+                                    </div>
+                                    <div className={styles.formField}>
+                                        <label htmlFor="paceInput">Seconds per Kilometer</label>
+                                        <input type="number" id="paceInput" min="1" className={styles.input}
+                                            value={newSecondsPerKilometer} onChange={(e) => setNewSecondsPerKilometer(Number(e.target.value) || 1)} required disabled={creating} />
+                                    </div>
+                                </div>
+                            )}
+                            <div className={styles.formField}>
+                                <label htmlFor="restInput">Rest Between Sets (seconds)</label>
+                                <input type="number" id="restInput" min="0" className={styles.input}
+                                    value={newRestSeconds} onChange={(e) => setNewRestSeconds(Math.max(0, Number(e.target.value)))} required disabled={creating} />
                             </div>
 
                             <div className={styles.formField}>
@@ -685,7 +817,7 @@ export default function ExerciseSelection() {
                                     className={styles.saveBtn} 
                                     disabled={creating}
                                 >
-                                    {creating ? 'Creating...' : 'Create Exercise'}
+                                    {creating ? 'Saving...' : editingExercise ? 'Save Changes' : 'Create Exercise'}
                                 </button>
                             </div>
                         </form>

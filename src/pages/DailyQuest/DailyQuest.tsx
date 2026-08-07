@@ -7,6 +7,46 @@ import { useSoundEffects } from '../../hooks/useSoundEffects';
 import styles from './DailyQuest.module.css';
 import type { DailyQuestResponse, QuestItem, ActiveQuestSession, TrainingPace } from '../../models/QuestModel';
 
+const formatQuestTarget = (item: QuestItem) => {
+    const amount = item.metric === 'DURATION'
+        ? `${item.targetDurationSeconds}s`
+        : item.metric === 'DISTANCE'
+            ? `${item.targetDistanceMeters >= 1000 ? `${item.targetDistanceMeters / 1000} km` : `${item.targetDistanceMeters} m`}`
+            : `${item.targetReps} Reps`;
+    return `${item.targetSets} Sets × ${amount}`;
+};
+
+const PACE_MULTIPLIERS: Record<TrainingPace, { work: number; rest: number }> = {
+    STRONG: { work: 0.85, rest: 0.75 },
+    AVERAGE: { work: 1, rest: 1 },
+    WEAK: { work: 1.2, rest: 1.25 },
+};
+
+const formatSeconds = (seconds: number) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0s';
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return remainingSeconds ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+};
+
+const calculatePacePreview = (item: QuestItem, pace: TrainingPace) => {
+    const multiplier = PACE_MULTIPLIERS[pace];
+    const secondsPerRep = Number.isFinite(item.secondsPerRep) ? item.secondsPerRep : 3;
+    const secondsPerKilometer = Number.isFinite(item.secondsPerKilometer) ? item.secondsPerKilometer : 360;
+    const baseRestSeconds = Number.isFinite(item.baseRestSeconds) ? item.baseRestSeconds : 40;
+    const baseWorkSeconds = item.metric === 'DURATION'
+        ? item.targetDurationSeconds
+        : item.metric === 'DISTANCE'
+            ? item.targetDistanceMeters / 1000 * secondsPerKilometer
+            : item.targetReps * secondsPerRep;
+    const secondsPerSet = Math.max(1, Math.round(baseWorkSeconds * multiplier.work));
+    const restSeconds = Math.max(0, Math.round(baseRestSeconds * multiplier.rest));
+    const totalSeconds = secondsPerSet * item.targetSets
+        + restSeconds * Math.max(0, item.targetSets - 1);
+    return { secondsPerSet, restSeconds, totalSeconds };
+};
+
 type TokenPayload = {
     sub: string;
     username: string; 
@@ -729,8 +769,12 @@ export default function DailyQuest() {
         }
 
         if (item.status === 'IN_PROGRESS' || item.status === 'PAUSED' || serverAccumulated > 0) {
-            const secondsPerSet = Math.max(1, item.targetReps * 3);
-            const restSeconds = 60;
+            const restSeconds = 40;
+            const secondsPerSet = item.metric === 'DURATION'
+                ? Math.max(1, item.targetDurationSeconds)
+                : item.metric === 'DISTANCE'
+                    ? Math.max(1, Math.round((serverRequired - restSeconds * Math.max(0, item.targetSets - 1)) / item.targetSets))
+                    : Math.max(1, item.targetReps * 3);
             const calculatedRequired = (secondsPerSet * item.targetSets) + (restSeconds * Math.max(0, item.targetSets - 1));
             const newSession: ActiveQuestSession = {
                 itemId: item.id,
@@ -1037,8 +1081,8 @@ export default function DailyQuest() {
                                     <span className={styles.statVal}>{selectedExerciseForModal.targetSets} Sets</span>
                                 </div>
                                 <div className={styles.detailStatCard}>
-                                    <span className={styles.statLabel}>TARGET REPS</span>
-                                    <span className={styles.statVal}>{selectedExerciseForModal.targetReps} Reps</span>
+                                    <span className={styles.statLabel}>TARGET WORK</span>
+                                    <span className={styles.statVal}>{formatQuestTarget({ ...selectedExerciseForModal, targetSets: 1 }).replace('1 Sets × ', '')}</span>
                                 </div>
                             </div>
 
@@ -1099,7 +1143,7 @@ export default function DailyQuest() {
                             <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
                             <h2 className={styles.detailTitle}>{activeWorkoutItem.exerciseName}</h2>
                             <p className={styles.detailTarget}>
-                                Target: <span className={styles.neonBlue}>{activeWorkoutItem.targetSets} Sets × {activeWorkoutItem.targetReps} Reps</span>
+                                Target: <span className={styles.neonBlue}>{formatQuestTarget(activeWorkoutItem)}</span>
                             </p>
                         </div>
 
@@ -1127,6 +1171,16 @@ export default function DailyQuest() {
                                                 <span className={styles.paceSub}>
                                                     {p === 'STRONG' ? 'Fast & Heavy' : p === 'AVERAGE' ? 'Moderate' : 'Light'}
                                                 </span>
+                                                {(() => {
+                                                    const preview = calculatePacePreview(activeWorkoutItem, p);
+                                                    return (
+                                                        <span className={styles.paceTiming}>
+                                                            <strong>{formatSeconds(preview.secondsPerSet)}</strong>/set
+                                                            <span>Rest {formatSeconds(preview.restSeconds)}</span>
+                                                            <span>Total {formatSeconds(preview.totalSeconds)}</span>
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         ))}
                                     </div>
@@ -1369,7 +1423,7 @@ export default function DailyQuest() {
                                                 )}
                                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                     <span className={`${styles.exerciseName} ${item.completed ? styles.lineThrough : ''}`}>
-                                                        {item.exerciseName} ({item.targetSets} Sets × {item.targetReps} Reps)
+                                                        {item.exerciseName} ({formatQuestTarget(item)})
                                                     </span>
                                                     {inProgress && (
                                                         <span className={styles.inProgressBadge}>
