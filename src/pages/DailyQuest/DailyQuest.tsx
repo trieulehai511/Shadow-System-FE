@@ -40,7 +40,11 @@ const calculatePacePreview = (item: QuestItem, pace: TrainingPace) => {
         : item.metric === 'DISTANCE'
             ? item.targetDistanceMeters / 1000 * secondsPerKilometer
             : item.targetReps * secondsPerRep;
-    const secondsPerSet = Math.max(1, Math.round(baseWorkSeconds * multiplier.work));
+    // Keep the preview identical to DailyQuestService: the backend first rounds
+    // the exercise's base work time, then applies the selected pace multiplier.
+    const roundedBaseWorkSeconds = Math.round(baseWorkSeconds);
+    const workMultiplier = item.metric === 'DURATION' ? 1 : multiplier.work;
+    const secondsPerSet = Math.max(1, Math.round(roundedBaseWorkSeconds * workMultiplier));
     const restSeconds = Math.max(0, Math.round(baseRestSeconds * multiplier.rest));
     const totalSeconds = secondsPerSet * item.targetSets
         + restSeconds * Math.max(0, item.targetSets - 1);
@@ -1150,39 +1154,89 @@ export default function DailyQuest() {
                         <div className={styles.detailBody}>
                             {!activeSession ? (
                                 <div className={styles.paceSelectionContainer}>
-                                    <h3 className={styles.sectionHeader}>
-                                        <span className="material-symbols-outlined">speed</span>
-                                        SELECT TRAINING INTENSITY
-                                    </h3>
-                                    <p className={styles.paceDescription}>
-                                        Select an intensity so the System can calculate appropriate training and recovery intervals.
-                                    </p>
-                                    
+                                    <div className={styles.paceHeader}>
+                                        <div className={styles.paceTitleRow}>
+                                            <span className={`material-symbols-outlined ${styles.paceHeaderIcon}`}>speed</span>
+                                            <h3 className={styles.sectionHeader}>SELECT TRAINING INTENSITY</h3>
+                                        </div>
+                                        <p className={styles.paceDescription}>
+                                            Choose an intensity pace so the System can calculate optimal work and recovery intervals.
+                                        </p>
+                                    </div>
+
                                     <div className={styles.paceCardsRow}>
-                                        {(['STRONG', 'AVERAGE', 'WEAK'] as const).map((p) => (
-                                            <div 
-                                                key={p}
-                                                className={`${styles.paceCard} ${selectedPace === p ? styles.paceCardActive : ''}`}
-                                                onClick={() => { playSelectConfirm(); setSelectedPace(p); }}
-                                            >
-                                                <span className={styles.paceName}>
-                                                    {p === 'STRONG' ? '⚡ STRONG' : p === 'AVERAGE' ? '⚖️ AVERAGE' : '🌱 WEAK'}
-                                                </span>
-                                                <span className={styles.paceSub}>
-                                                    {p === 'STRONG' ? 'Fast & Heavy' : p === 'AVERAGE' ? 'Moderate' : 'Light'}
-                                                </span>
-                                                {(() => {
-                                                    const preview = calculatePacePreview(activeWorkoutItem, p);
-                                                    return (
-                                                        <span className={styles.paceTiming}>
-                                                            <strong>{formatSeconds(preview.secondsPerSet)}</strong>/set
-                                                            <span>Rest {formatSeconds(preview.restSeconds)}</span>
-                                                            <span>Total {formatSeconds(preview.totalSeconds)}</span>
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </div>
-                                        ))}
+                                        {(['STRONG', 'AVERAGE', 'WEAK'] as const).map((p) => {
+                                            const preview = calculatePacePreview(activeWorkoutItem, p);
+                                            const isSelected = selectedPace === p;
+
+                                            const config = {
+                                                STRONG: {
+                                                    label: 'STRONG',
+                                                    sub: 'Fast & Heavy',
+                                                    icon: 'local_fire_department',
+                                                    badge: 'HIGH INTENSITY',
+                                                    tierClass: styles.paceCardStrong,
+                                                },
+                                                AVERAGE: {
+                                                    label: 'AVERAGE',
+                                                    sub: 'Standard Pace',
+                                                    icon: 'fitness_center',
+                                                    badge: 'BALANCED',
+                                                    tierClass: styles.paceCardAverage,
+                                                },
+                                                WEAK: {
+                                                    label: 'WEAK',
+                                                    sub: 'Light & Steady',
+                                                    icon: 'spa',
+                                                    badge: 'RECOVERY PACE',
+                                                    tierClass: styles.paceCardWeak,
+                                                },
+                                            }[p];
+
+                                            return (
+                                                <div
+                                                    key={p}
+                                                    className={`${styles.paceCard} ${config.tierClass} ${isSelected ? styles.paceCardActive : ''}`}
+                                                    onClick={() => { playSelectConfirm(); setSelectedPace(p); }}
+                                                >
+                                                    <div className={styles.paceCardTop}>
+                                                        <div className={styles.paceIconWrapper}>
+                                                            <span className="material-symbols-outlined">{config.icon}</span>
+                                                        </div>
+                                                        <div className={styles.paceRadioIndicator}>
+                                                            {isSelected ? (
+                                                                <span className="material-symbols-outlined">check_circle</span>
+                                                            ) : (
+                                                                <span className={styles.radioDot} />
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className={styles.paceMeta}>
+                                                        <span className={styles.paceName}>{config.label}</span>
+                                                        <span className={styles.paceBadge}>{config.badge}</span>
+                                                    </div>
+
+                                                    <div className={styles.paceTimingContainer}>
+                                                        <div className={styles.timingMain}>
+                                                            <span className={styles.timingValue}>{formatSeconds(preview.secondsPerSet)}</span>
+                                                            <span className={styles.timingUnit}>/ set</span>
+                                                        </div>
+
+                                                        <div className={styles.timingDetails}>
+                                                            <div className={styles.timingRow}>
+                                                                <span className="material-symbols-outlined">timer</span>
+                                                                <span>Rest: <strong>{formatSeconds(preview.restSeconds)}</strong></span>
+                                                            </div>
+                                                            <div className={styles.timingRow}>
+                                                                <span className="material-symbols-outlined">schedule</span>
+                                                                <span>Total: <strong>{formatSeconds(preview.totalSeconds)}</strong></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
                                     <button 
@@ -1190,7 +1244,17 @@ export default function DailyQuest() {
                                         onClick={() => handleStartWorkout(activeWorkoutItem)}
                                         disabled={isWorkoutActionLoading}
                                     >
-                                        {isWorkoutActionLoading ? 'ACTIVATING...' : 'START TRAINING'}
+                                        {isWorkoutActionLoading ? (
+                                            <>
+                                                <span className="material-symbols-outlined animate-spin">sync</span>
+                                                <span>ACTIVATING SYSTEM...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined">bolt</span>
+                                                <span>START TRAINING</span>
+                                            </>
+                                        )}
                                     </button>
                                     
                                     {timerError && <p className={styles.errorText}>{timerError}</p>}
