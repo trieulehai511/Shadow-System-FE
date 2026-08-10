@@ -10,6 +10,7 @@ import {
 } from '../../services/notifications';
 import { SettingsModal } from '../profile/SettingsModal';
 import { getMySettings } from '../../services/settingService';
+import logo from '../../assets/logo-purple-blue.png';
 import styles from './MainLayout.module.css';
 
 function getSecondsUntilMidnightInTimezone(zoneId?: string): number {
@@ -127,7 +128,7 @@ export default function MainLayout() {
             if (!('Notification' in window) || Notification.permission !== 'granted') return;
             const notification = new Notification(payload.notification?.title || payload.data?.title || 'SHADOW SYSTEM', {
                 body: payload.notification?.body || payload.data?.body || 'You have a new notification.',
-                icon: '/favicon.svg',
+                icon: '/logo-purple-blue.png',
                 data: payload.data,
             });
             notification.onclick = () => {
@@ -382,7 +383,10 @@ export default function MainLayout() {
 
                         {/* Top Center: Stylized Brand Name */}
                         <div className={styles.headerTitle} onClick={() => navigate('/daily-quest')}>
-                            SHADOW SYSTEM
+                            <span className={styles.headerLogoCrop} aria-hidden="true">
+                                <img className={styles.headerLogo} src={logo} alt="" />
+                            </span>
+                            <span>SHADOW SYSTEM</span>
                         </div>
 
                         {/* Top Right: Notifications + Logout + Avatar */}

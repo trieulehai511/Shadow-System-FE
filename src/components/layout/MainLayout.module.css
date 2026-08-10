@@ -234,10 +234,29 @@
     cursor: pointer;
     user-select: none;
     transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .headerTitle:hover {
     opacity: 0.8;
+}
+
+.headerLogoCrop {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.headerLogo {
+    width: 30px;
+    height: auto;
+    display: block;
 }
 
 .headerIcons {
@@ -489,4 +508,3 @@
 .tooltipDesc strong {
     color: var(--color-on-surface);
 }
-

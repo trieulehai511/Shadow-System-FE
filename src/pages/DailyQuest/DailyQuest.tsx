@@ -163,6 +163,11 @@ export default function DailyQuest() {
         playCountdown5s,
         playSetComplete,
         playReward,
+        unlockTrainingMusic,
+        startTrainingMusic,
+        stopTrainingMusic,
+        startRestMusic,
+        stopRestMusic,
     } = useSoundEffects();
     const [questData, setQuestData] = useState<DailyQuestResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -240,6 +245,46 @@ export default function DailyQuest() {
         countdownPhaseRef.current = phaseKey;
         playCountdown5s();
     }, [activeSession, playCountdown5s]);
+
+    const shouldPlayTrainingMusic = Boolean(
+        activeWorkoutItem &&
+        activeSession &&
+        activeSession.phase === 'training' &&
+        !activeSession.isPaused &&
+        activeSession.timeLeft > 0 &&
+        preparationStep === null
+    );
+
+    useEffect(() => {
+        if (shouldPlayTrainingMusic) startTrainingMusic();
+        else stopTrainingMusic();
+
+        return stopTrainingMusic;
+    }, [
+        shouldPlayTrainingMusic,
+        startTrainingMusic,
+        stopTrainingMusic,
+    ]);
+
+    const shouldPlayRestMusic = Boolean(
+        activeWorkoutItem &&
+        activeSession &&
+        activeSession.phase === 'rest' &&
+        !activeSession.isPaused &&
+        activeSession.timeLeft > 0 &&
+        preparationStep === null
+    );
+
+    useEffect(() => {
+        if (shouldPlayRestMusic) startRestMusic();
+        else stopRestMusic();
+
+        return stopRestMusic;
+    }, [
+        shouldPlayRestMusic,
+        startRestMusic,
+        stopRestMusic,
+    ]);
 
     const shouldKeepScreenAwake = Boolean(
         activeWorkoutItem && (
@@ -467,6 +512,8 @@ export default function DailyQuest() {
     const beginPreparation = useCallback(
         (targetSession: ActiveQuestSession, resumeOnServer = false) => {
             cancelPreparation();
+            // Unlock from the click, but keep it muted throughout the preparation countdown.
+            unlockTrainingMusic();
             playCountdown5s(1);
 
             const paused = { ...targetSession, isPaused: true };
@@ -539,7 +586,7 @@ export default function DailyQuest() {
                 }, 3600)
             );
         },
-        [cancelPreparation, playCountdown5s, saveSessionToStorage]
+        [cancelPreparation, playCountdown5s, saveSessionToStorage, unlockTrainingMusic]
     );
 
     useEffect(() => {
@@ -806,6 +853,8 @@ export default function DailyQuest() {
     const handleCloseWorkoutModal = () => {
         cancelPreparation();
         playCancel();
+        stopTrainingMusic();
+        stopRestMusic();
         setActiveWorkoutItem(null);
         setTimerError(null);
         void pauseCurrentSession().finally(fetchDailyQuest);
@@ -813,6 +862,8 @@ export default function DailyQuest() {
 
     const handleStartWorkout = async (item: QuestItem) => {
         if (isWorkoutActionLoading) return;
+        // Unlock background audio before the API request loses the click activation.
+        unlockTrainingMusic();
         setIsWorkoutActionLoading(true);
         try {
             setTimerError(null);
@@ -845,6 +896,8 @@ export default function DailyQuest() {
                 beginPreparation(newSession);
             }
         } catch (err: any) {
+            stopTrainingMusic();
+            stopRestMusic();
             console.error("Failed to start exercise:", err);
             setTimerError(err.message || "Unable to start the exercise.");
         } finally {
