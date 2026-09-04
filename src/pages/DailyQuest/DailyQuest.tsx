@@ -174,7 +174,23 @@ export default function DailyQuest() {
     const [selectedExerciseForModal, setSelectedExerciseForModal] = useState<QuestItem | null>(null);
     const [activeWorkoutItem, setActiveWorkoutItem] = useState<QuestItem | null>(null);
     const [activeSession, setActiveSession] = useState<ActiveQuestSession | null>(null);
-    const [selectedPace, setSelectedPace] = useState<TrainingPace>('AVERAGE');
+    const [preferredPace, setPreferredPace] = useState<TrainingPace>(() => {
+        const saved = localStorage.getItem('shadow_quest_preferred_pace');
+        return (saved === 'STRONG' || saved === 'AVERAGE' || saved === 'WEAK') ? saved : 'AVERAGE';
+    });
+    const [selectedPace, setSelectedPace] = useState<TrainingPace>(() => {
+        const saved = localStorage.getItem('shadow_quest_preferred_pace');
+        return (saved === 'STRONG' || saved === 'AVERAGE' || saved === 'WEAK') ? saved : 'AVERAGE';
+    });
+    const [isRoutineMode, setIsRoutineMode] = useState<boolean>(false);
+    const [transitionState, setTransitionState] = useState<{
+        completedExerciseName: string;
+        nextItem: QuestItem;
+        countdown: number;
+    } | null>(null);
+    const [autoCompletingId, setAutoCompletingId] = useState<string | null>(null);
+    const autoCompletedIdsRef = useRef<Set<string>>(new Set());
+    const executeStartRef = useRef<(() => Promise<void>) | null>(null);
     const [preparationStep, setPreparationStep] = useState<number | 'go' | null>(null);
     const [timerError, setTimerError] = useState<string | null>(null);
     const [entryBriefing, setEntryBriefing] = useState<string | null>(null);
@@ -185,6 +201,8 @@ export default function DailyQuest() {
     } | null>(null);
     const pingTickRef = useRef<number>(0);
     const pingInFlightRef = useRef<boolean>(false);
+    const lastPingTimeRef = useRef<number>(0);
+    const syncFailureCountRef = useRef<number>(0);
     const pauseRequestRef = useRef<Promise<any> | null>(null);
     const preparationTimersRef = useRef<number[]>([]);
     const countdownPhaseRef = useRef<string | null>(null);
@@ -287,8 +305,9 @@ export default function DailyQuest() {
     ]);
 
     const shouldKeepScreenAwake = Boolean(
-        activeWorkoutItem && (
+        (activeWorkoutItem || transitionState !== null) && (
             preparationStep !== null ||
+            transitionState !== null ||
             (activeSession && !activeSession.isPaused && activeSession.timeLeft > 0)
         )
     );
@@ -398,6 +417,7 @@ export default function DailyQuest() {
     const cancelPreparation = useCallback(() => {
         preparationTimersRef.current.forEach(id => clearTimeout(id));
         preparationTimersRef.current = [];
+        executeStartRef.current = null;
         setPreparationStep(null);
     }, []);
 
@@ -461,6 +481,8 @@ export default function DailyQuest() {
             const pauseReq = apiRequest(`/daily-quest/item/${current.itemId}/pause`, { method: 'POST' });
             pauseRequestRef.current = pauseReq;
             const response = await pauseReq;
+            lastPingTimeRef.current = Date.now();
+            syncFailureCountRef.current = 0;
             const serverAccumulated = response?.result?.accumulatedSeconds ?? paused.accumulatedSeconds;
 
             setActiveSession((prev) => {
@@ -532,62 +554,100 @@ export default function DailyQuest() {
             show(1, 2000);
             show('go', 3000);
 
-            preparationTimersRef.current.push(
-                window.setTimeout(async () => {
-                    const current = activeSessionRef.current;
-                    if (!current || current.timeLeft <= 0) {
-                        setPreparationStep(null);
-                        preparationTimersRef.current = [];
-                        return;
-                    }
+            const startImmediately = () => {
+                cancelPreparation();
+                const current = activeSessionRef.current;
+                if (!current || current.timeLeft <= 0) return;
 
-                    try {
-                        let accumulatedSeconds = current.accumulatedSeconds;
-                        if (resumeOnServer) {
+                // 1. Instantly unpause timer in state and storage
+                const running = {
+                    ...current,
+                    isPaused: false,
+                };
+                activeSessionRef.current = running;
+                setActiveSession(running);
+                saveSessionToStorage(running);
+
+                // Update quest items status to IN_PROGRESS
+                setQuestData(prev =>
+                    prev
+                        ? {
+                            ...prev,
+                            questItems: prev.questItems.map(item =>
+                                item.id === current.itemId
+                                    ? {
+                                        ...item,
+                                        status: 'IN_PROGRESS',
+                                    }
+                                    : item
+                            ),
+                        }
+                        : prev
+                );
+
+                // Start training music immediately
+                startTrainingMusic();
+
+                // 2. Perform resume on server in background without blocking the UI timer
+                if (resumeOnServer) {
+                    void (async () => {
+                        try {
                             if (pauseRequestRef.current) {
                                 await pauseRequestRef.current;
                             }
                             const res = await apiRequest(`/daily-quest/item/${current.itemId}/resume`, {
                                 method: 'POST',
                             });
-                            accumulatedSeconds = res?.result?.accumulatedSeconds ?? accumulatedSeconds;
+                            lastPingTimeRef.current = Date.now();
+                            pingTickRef.current = 0;
+                            syncFailureCountRef.current = 0;
+                            const serverAccumulated = res?.result?.accumulatedSeconds;
+                            if (typeof serverAccumulated === 'number') {
+                                setActiveSession(prev => {
+                                    if (!prev || prev.itemId !== current.itemId) return prev;
+                                    const updated = {
+                                        ...prev,
+                                        accumulatedSeconds: Math.max(prev.accumulatedSeconds, serverAccumulated)
+                                    };
+                                    activeSessionRef.current = updated;
+                                    saveSessionToStorage(updated);
+                                    return updated;
+                                });
+                            }
+                        } catch (err: any) {
+                            console.error("Resume training session failed:", err);
+                            setTimerError(err.message || "Unable to resume training session.");
                         }
+                    })();
+                }
+            };
 
-                        const running = {
-                            ...current,
-                            accumulatedSeconds,
-                            isPaused: false,
-                        };
-                        activeSessionRef.current = running;
-                        setActiveSession(running);
-                        saveSessionToStorage(running);
-                        setQuestData(prev =>
-                            prev
-                                ? {
-                                    ...prev,
-                                    questItems: prev.questItems.map(item =>
-                                        item.id === current.itemId
-                                            ? {
-                                                ...item,
-                                                status: 'IN_PROGRESS',
-                                                accumulatedSeconds,
-                                            }
-                                            : item
-                                    ),
-                                }
-                                : prev
-                        );
-                    } catch (err: any) {
-                        console.error("Resume training session failed:", err);
-                        setTimerError(err.message || "Unable to resume training session.");
-                    }
-                    setPreparationStep(null);
-                    preparationTimersRef.current = [];
-                }, 3600)
+            executeStartRef.current = startImmediately;
+
+            preparationTimersRef.current.push(
+                window.setTimeout(startImmediately, 3600)
             );
         },
-        [cancelPreparation, playCountdown5s, saveSessionToStorage, unlockTrainingMusic]
+        [cancelPreparation, playCountdown5s, saveSessionToStorage, startTrainingMusic, unlockTrainingMusic]
     );
+
+    const handleSkipPreparation = useCallback((e?: React.MouseEvent) => {
+        e?.preventDefault();
+        e?.stopPropagation();
+        if (executeStartRef.current) {
+            executeStartRef.current();
+        } else {
+            cancelPreparation();
+            const current = activeSessionRef.current;
+            if (current && current.timeLeft > 0) {
+                const running = { ...current, isPaused: false };
+                activeSessionRef.current = running;
+                setActiveSession(running);
+                saveSessionToStorage(running);
+                startTrainingMusic();
+            }
+        }
+    }, [cancelPreparation, saveSessionToStorage, startTrainingMusic]);
 
     useEffect(() => {
         const handlePauseOnExit = () => {
@@ -645,8 +705,17 @@ export default function DailyQuest() {
         }
     };
 
-    const syncProgress = useCallback(async (session: ActiveQuestSession, showSyncError = false) => {
+    const syncProgress = useCallback(async (session: ActiveQuestSession, isFinalSync = false) => {
         if (pingInFlightRef.current) return;
+
+        const now = Date.now();
+        const timeSinceLastPing = lastPingTimeRef.current > 0 ? (now - lastPingTimeRef.current) / 1000 : 999;
+
+        // Anti-Spam protection matching backend rule (9 seconds):
+        // If less than 9.5s has elapsed, do NOT ping to avoid ErrorCode.PING_INTERVAL_TOO_SHORT (429)
+        if (timeSinceLastPing < 9.5) {
+            return;
+        }
 
         pingInFlightRef.current = true;
         try {
@@ -654,28 +723,44 @@ export default function DailyQuest() {
                 method: 'POST'
             });
             if (data?.result) {
+                lastPingTimeRef.current = Date.now();
+                syncFailureCountRef.current = 0;
+                setTimerError(null);
                 const serverAccumulated = data.result.accumulatedSeconds;
                 setActiveSession((prev) => {
                     if (!prev || prev.itemId !== session.itemId) return prev;
                     const updated = {
                         ...prev,
                         accumulatedSeconds: serverAccumulated,
-                        isFinishing: false,
+                        isFinishing: prev.timeLeft === 0 && serverAccumulated < prev.totalRequiredSeconds,
                     };
                     saveSessionToStorage(updated);
                     return updated;
                 });
+                setQuestData((prev) => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        questItems: prev.questItems.map(qi => qi.id === session.itemId ? {
+                            ...qi,
+                            accumulatedSeconds: serverAccumulated
+                        } : qi)
+                    };
+                });
             }
-        } catch (err) {
-            console.error("Failed to send progress ping:", err);
-            setActiveSession((prev) => {
-                if (!prev || prev.itemId !== session.itemId) return prev;
-                const updated = { ...prev, isFinishing: false };
-                saveSessionToStorage(updated);
-                return updated;
-            });
-            if (showSyncError) {
-                setTimerError("Unable to synchronize final progress. Please try again.");
+        } catch (err: any) {
+            const errorCode = err?.code ?? err?.response?.data?.code;
+            const status = err?.status ?? err?.response?.status;
+
+            // Silently ignore 2010 (PING_INTERVAL_TOO_SHORT) and 2005 (QUEST_ITEM_NOT_IN_PROGRESS)
+            if (errorCode === 2010 || status === 429 || errorCode === 2005) {
+                return;
+            }
+
+            console.warn("Failed to send progress ping:", err);
+            syncFailureCountRef.current += 1;
+            if (isFinalSync && syncFailureCountRef.current >= 4) {
+                setTimerError("Synchronizing with System... Please keep this window open.");
             }
         } finally {
             pingInFlightRef.current = false;
@@ -757,11 +842,12 @@ export default function DailyQuest() {
         if (!needsFinalSync) return;
 
         let cancelled = false;
+        let retryTimeoutId: number | undefined;
 
-        const retryFinalSync = async () => {
+        const scheduleFinalSync = () => {
+            if (cancelled) return;
             const current = activeSessionRef.current;
             if (
-                cancelled ||
                 !current ||
                 current.timeLeft !== 0 ||
                 current.accumulatedSeconds >= current.totalRequiredSeconds
@@ -769,16 +855,35 @@ export default function DailyQuest() {
                 return;
             }
 
-            setActiveSession(prev => (prev ? { ...prev, isFinishing: true } : prev));
-            await syncProgress(current, true);
+            const now = Date.now();
+            const elapsed = lastPingTimeRef.current > 0 ? (now - lastPingTimeRef.current) / 1000 : 999;
+            // Ensure at least 10s elapsed so backend's 9s anti-spam never triggers 429
+            const waitMs = Math.max(600, Math.ceil((10.0 - elapsed) * 1000));
+
+            retryTimeoutId = window.setTimeout(async () => {
+                if (cancelled) return;
+                const latest = activeSessionRef.current;
+                if (!latest || latest.timeLeft !== 0 || latest.accumulatedSeconds >= latest.totalRequiredSeconds) {
+                    return;
+                }
+
+                setActiveSession(prev => (prev ? { ...prev, isFinishing: true } : prev));
+                await syncProgress(latest, true);
+
+                if (!cancelled) {
+                    const checkLater = activeSessionRef.current;
+                    if (checkLater && checkLater.timeLeft === 0 && checkLater.accumulatedSeconds < checkLater.totalRequiredSeconds) {
+                        scheduleFinalSync();
+                    }
+                }
+            }, waitMs);
         };
 
-        void retryFinalSync();
-        const retryInterval = setInterval(retryFinalSync, 5000);
+        scheduleFinalSync();
 
         return () => {
             cancelled = true;
-            clearInterval(retryInterval);
+            if (retryTimeoutId) clearTimeout(retryTimeoutId);
         };
     }, [
         activeSession?.timeLeft,
@@ -787,10 +892,63 @@ export default function DailyQuest() {
         syncProgress,
     ]);
 
-    const handleOpenWorkoutModal = async (item: QuestItem) => {
+    const handleStartWorkout = useCallback(async (item: QuestItem, paceOverride?: TrainingPace) => {
+        if (isWorkoutActionLoading) return;
+        const paceToUse = paceOverride || selectedPace || preferredPace;
+        setActiveWorkoutItem(item);
+        setSelectedPace(paceToUse);
+        setTransitionState(null);
+        unlockTrainingMusic();
+        setIsWorkoutActionLoading(true);
+        try {
+            setTimerError(null);
+            pingTickRef.current = 0;
+            syncFailureCountRef.current = 0;
+            const data = await apiRequest(`/daily-quest/item/${item.id}/start?pace=${paceToUse}`, {
+                method: 'POST'
+            });
+
+            if (data?.result) {
+                lastPingTimeRef.current = Date.now();
+                const { secondsPerSet, restSeconds, totalRequiredSeconds } = data.result;
+                const newSession: ActiveQuestSession = {
+                    itemId: item.id,
+                    exerciseName: item.exerciseName,
+                    pace: paceToUse,
+                    secondsPerSet: secondsPerSet,
+                    restSeconds: restSeconds,
+                    totalRequiredSeconds: totalRequiredSeconds,
+                    accumulatedSeconds: 0,
+                    currentSet: 1,
+                    phase: 'training',
+                    timeLeft: secondsPerSet,
+                    isPaused: true,
+                };
+                setQuestData(prev => prev ? {
+                    ...prev,
+                    questItems: prev.questItems.map(i =>
+                        i.id === item.id ? { ...i, status: 'IN_PROGRESS' } : i
+                    )
+                } : prev);
+                beginPreparation(newSession);
+            }
+        } catch (err: any) {
+            stopTrainingMusic();
+            stopRestMusic();
+            console.error("Failed to start exercise:", err);
+            setTimerError(err.message || "Unable to start the exercise.");
+        } finally {
+            setIsWorkoutActionLoading(false);
+        }
+    }, [beginPreparation, isWorkoutActionLoading, preferredPace, selectedPace, stopRestMusic, stopTrainingMusic, unlockTrainingMusic]);
+
+    const handleOpenWorkoutModal = useCallback(async (item: QuestItem, forceModalConfig = false) => {
         playSelectConfirm();
         setActiveWorkoutItem(item);
+        setTransitionState(null);
         pingTickRef.current = 0;
+        syncFailureCountRef.current = 0;
+        lastPingTimeRef.current = Date.now();
         const saved = localStorage.getItem(`shadow_quest_session_${item.id}`);
         const serverAccumulated = item.accumulatedSeconds ?? 0;
         const serverRequired = item.requiredSeconds ?? 0;
@@ -830,7 +988,7 @@ export default function DailyQuest() {
             const newSession: ActiveQuestSession = {
                 itemId: item.id,
                 exerciseName: item.exerciseName,
-                pace: 'AVERAGE',
+                pace: preferredPace,
                 secondsPerSet: secondsPerSet,
                 restSeconds: restSeconds,
                 totalRequiredSeconds: calculatedRequired || serverRequired || 100,
@@ -845,10 +1003,26 @@ export default function DailyQuest() {
             return;
         }
 
+        if (!forceModalConfig) {
+            // Quick Start! Directly start training with preferred pace
+            void handleStartWorkout(item, preferredPace);
+            return;
+        }
+
         setActiveSession(null);
-        setSelectedPace('AVERAGE');
+        setSelectedPace(preferredPace);
         setTimerError(null);
-    };
+    }, [handleStartWorkout, playSelectConfirm, preferredPace, saveSessionToStorage]);
+
+    const handleStartRoutine = useCallback(() => {
+        if (!questData?.questItems) return;
+        setIsRoutineMode(true);
+        const incompleteMain = questData.questItems.find(i => !i.completed && i.type !== 'BONUS');
+        const nextTarget = incompleteMain || questData.questItems.find(i => !i.completed);
+        if (nextTarget) {
+            void handleOpenWorkoutModal(nextTarget, false);
+        }
+    }, [handleOpenWorkoutModal, questData?.questItems]);
 
     const handleCloseWorkoutModal = () => {
         cancelPreparation();
@@ -856,53 +1030,10 @@ export default function DailyQuest() {
         stopTrainingMusic();
         stopRestMusic();
         setActiveWorkoutItem(null);
+        setTransitionState(null);
+        setIsRoutineMode(false);
         setTimerError(null);
         void pauseCurrentSession().finally(fetchDailyQuest);
-    };
-
-    const handleStartWorkout = async (item: QuestItem) => {
-        if (isWorkoutActionLoading) return;
-        // Unlock background audio before the API request loses the click activation.
-        unlockTrainingMusic();
-        setIsWorkoutActionLoading(true);
-        try {
-            setTimerError(null);
-            pingTickRef.current = 0;
-            const data = await apiRequest(`/daily-quest/item/${item.id}/start?pace=${selectedPace}`, {
-                method: 'POST'
-            });
-
-            if (data?.result) {
-                const { secondsPerSet, restSeconds, totalRequiredSeconds } = data.result;
-                const newSession: ActiveQuestSession = {
-                    itemId: item.id,
-                    exerciseName: item.exerciseName,
-                    pace: selectedPace,
-                    secondsPerSet: secondsPerSet,
-                    restSeconds: restSeconds,
-                    totalRequiredSeconds: totalRequiredSeconds,
-                    accumulatedSeconds: 0,
-                    currentSet: 1,
-                    phase: 'training',
-                    timeLeft: secondsPerSet,
-                    isPaused: true,
-                };
-                setQuestData(prev => prev ? {
-                    ...prev,
-                    questItems: prev.questItems.map(i =>
-                        i.id === item.id ? { ...i, status: 'IN_PROGRESS' } : i
-                    )
-                } : prev);
-                beginPreparation(newSession);
-            }
-        } catch (err: any) {
-            stopTrainingMusic();
-            stopRestMusic();
-            console.error("Failed to start exercise:", err);
-            setTimerError(err.message || "Unable to start the exercise.");
-        } finally {
-            setIsWorkoutActionLoading(false);
-        }
     };
 
     const handleResetWorkout = async (itemId: string) => {
@@ -914,8 +1045,10 @@ export default function DailyQuest() {
             setTimerError(null);
             await apiRequest(`/daily-quest/item/${itemId}/reset`, { method: 'POST' });
             removeSessionFromStorage(itemId);
+            autoCompletedIdsRef.current.delete(itemId);
             setActiveSession(null);
             setActiveWorkoutItem(null);
+            setTransitionState(null);
             await fetchDailyQuest();
         } catch (err: any) {
             console.error("Failed to reset exercise:", err);
@@ -925,21 +1058,25 @@ export default function DailyQuest() {
         }
     };
 
-    const handleCompleteWorkout = async (itemId: string) => {
-        if (!activeWorkoutItem || isWorkoutActionLoading) return;
+    const handleCompleteWorkout = useCallback(async (itemId: string, keepModalForNext = false) => {
+        if (!activeWorkoutItemRef.current || isWorkoutActionLoading) return;
+        const currentItem = activeWorkoutItemRef.current;
+        const currentSession = activeSessionRef.current;
+
         if (
-            !hasFinishedWorkoutTimer(activeSessionRef.current, activeWorkoutItem) ||
-            (activeSessionRef.current?.accumulatedSeconds ?? 0) <
-                (activeSessionRef.current?.totalRequiredSeconds ?? Number.MAX_SAFE_INTEGER)
+            !hasFinishedWorkoutTimer(currentSession, currentItem) ||
+            (currentSession?.accumulatedSeconds ?? 0) <
+                (currentSession?.totalRequiredSeconds ?? Number.MAX_SAFE_INTEGER)
         ) {
             setTimerError("Exercise timer or required training duration is not yet finished.");
             return;
         }
 
         setIsWorkoutActionLoading(true);
+        setAutoCompletingId(itemId);
         try {
             setTimerError(null);
-            const isMainQuestItem = activeWorkoutItem.type !== 'BONUS';
+            const isMainQuestItem = currentItem.type !== 'BONUS';
             const mainItemsBefore = questData?.questItems.filter(item => item.type !== 'BONUS') ?? [];
             const wasMainQuestCompleted = mainItemsBefore.length > 0 && mainItemsBefore.every(item => item.completed);
             let attributesBefore: AttributeValues = {};
@@ -960,8 +1097,7 @@ export default function DailyQuest() {
             if (data.result) {
                 const quest = data.result;
                 removeSessionFromStorage(itemId);
-                setActiveWorkoutItem(null);
-                setActiveSession(null);
+                autoCompletedIdsRef.current.add(itemId);
 
                 const sortedQuest = sortByInitialOrder(quest);
                 setQuestData(sortedQuest);
@@ -1002,6 +1138,29 @@ export default function DailyQuest() {
                         attributeGains: accumulatedAttributeGains,
                     });
                     localStorage.removeItem(`${ATTRIBUTE_GAINS_PREFIX}${quest.id}`);
+                    setActiveWorkoutItem(null);
+                    setActiveSession(null);
+                    setTransitionState(null);
+                    setIsRoutineMode(false);
+                } else {
+                    const nextIncomplete = sortedQuest.questItems.find(
+                        item => !item.completed && (isRoutineMode ? true : item.type !== 'BONUS')
+                    ) || sortedQuest.questItems.find(item => !item.completed);
+
+                    if (nextIncomplete && (keepModalForNext || isRoutineMode)) {
+                        playSetComplete();
+                        setActiveSession(null);
+                        setTransitionState({
+                            completedExerciseName: currentItem.exerciseName,
+                            nextItem: nextIncomplete,
+                            countdown: 8,
+                        });
+                    } else {
+                        playSetComplete();
+                        setActiveWorkoutItem(null);
+                        setActiveSession(null);
+                        setTransitionState(null);
+                    }
                 }
             }
         } catch (err: any) {
@@ -1009,8 +1168,50 @@ export default function DailyQuest() {
             setTimerError(err.message || "Completion could not be recorded.");
         } finally {
             setIsWorkoutActionLoading(false);
+            setAutoCompletingId(null);
         }
-    };
+    }, [isRoutineMode, isWorkoutActionLoading, playReward, playSetComplete, questData?.questItems, removeSessionFromStorage, sortByInitialOrder]);
+
+    // Auto-complete trigger when training timer finishes and required time is met
+    useEffect(() => {
+        if (!activeSession || !activeWorkoutItem || isWorkoutActionLoading) return;
+        if (autoCompletingId === activeWorkoutItem.id || autoCompletedIdsRef.current.has(activeWorkoutItem.id)) return;
+
+        const isFinished = hasFinishedWorkoutTimer(activeSession, activeWorkoutItem);
+        const hasTime = activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds;
+
+        if (isFinished && hasTime) {
+            void handleCompleteWorkout(activeWorkoutItem.id, true);
+        }
+    }, [
+        activeSession?.timeLeft,
+        activeSession?.accumulatedSeconds,
+        activeSession?.totalRequiredSeconds,
+        activeSession?.phase,
+        activeSession?.currentSet,
+        activeWorkoutItem?.id,
+        isWorkoutActionLoading,
+        autoCompletingId,
+        handleCompleteWorkout
+    ]);
+
+    // Countdown effect for seamless routine transition to next exercise
+    useEffect(() => {
+        if (!transitionState) return;
+        if (transitionState.countdown === 0) {
+            const next = transitionState.nextItem;
+            setTransitionState(null);
+            void handleOpenWorkoutModal(next, false);
+            return;
+        }
+        if (transitionState.countdown < 0) return; // Paused for rest
+
+        const timerId = window.setTimeout(() => {
+            setTransitionState(prev => prev && prev.countdown > 0 ? { ...prev, countdown: prev.countdown - 1 } : prev);
+        }, 1000);
+
+        return () => window.clearTimeout(timerId);
+    }, [transitionState?.countdown, handleOpenWorkoutModal]);
 
     if (loading) return <div className={styles.centerLoading}><h3>⚡ SYNCHRONIZING SYSTEM DATA...</h3></div>;
 
@@ -1174,7 +1375,7 @@ export default function DailyQuest() {
             )}
 
             {/* ACTIVE WORKOUT TIMER MODAL */}
-            {activeWorkoutItem && (
+            {(activeWorkoutItem || transitionState) && (
                 <div className={styles.modalOverlay} onClick={handleCloseWorkoutModal}>
                     <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
                         <button 
@@ -1184,234 +1385,306 @@ export default function DailyQuest() {
                             <span className="material-symbols-outlined">close</span>
                         </button>
 
-                        {/* PREPARATION STEP OVERLAY */}
-                        {preparationStep !== null && (
-                            <div className={styles.prepOverlay}>
-                                <div className={styles.prepContent}>
-                                    <span className={styles.prepLabel}>GET READY</span>
-                                    <span className={`${styles.prepValue} ${preparationStep === 'go' ? styles.prepGo : ''}`}>
-                                        {preparationStep === 'go' ? 'GO!' : preparationStep}
+                        {transitionState ? (
+                            <div className={styles.transitionContainer}>
+                                <div className={styles.transitionCheckIcon}>
+                                    <span className="material-symbols-outlined">check_circle</span>
+                                </div>
+                                <span className={styles.transitionBadge}>DIRECTIVE COMPLETE</span>
+                                <h2 className={styles.transitionTitle}>{transitionState.completedExerciseName}</h2>
+                                <p className={styles.transitionSubtitle}>Target completed! Prepare for your next assignment.</p>
+
+                                <div className={styles.nextCard}>
+                                    <div className={styles.nextCardHeader}>
+                                        <span className={styles.nextTag}>UP NEXT</span>
+                                        <span className={styles.nextCategory}>{transitionState.nextItem.category}</span>
+                                    </div>
+                                    <h3 className={styles.nextExerciseName}>{transitionState.nextItem.exerciseName}</h3>
+                                    <span className={styles.nextTarget}>{formatQuestTarget(transitionState.nextItem)}</span>
+                                </div>
+
+                                <div className={styles.transitionCountdownRow}>
+                                    <span className={styles.transitionCountdownText}>
+                                        {transitionState.countdown > 0 ? (
+                                            <>Starting next directive in <strong className={styles.neonBlue}>{transitionState.countdown}s</strong></>
+                                        ) : (
+                                            <>Paused for recovery. Resume when ready.</>
+                                        )}
                                     </span>
                                 </div>
-                            </div>
-                        )}
 
-                        <div className={styles.exerciseDetailHeader}>
-                            <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
-                            <h2 className={styles.detailTitle}>{activeWorkoutItem.exerciseName}</h2>
-                            <p className={styles.detailTarget}>
-                                Target: <span className={styles.neonBlue}>{formatQuestTarget(activeWorkoutItem)}</span>
-                            </p>
-                        </div>
-
-                        <div className={styles.detailBody}>
-                            {!activeSession ? (
-                                <div className={styles.paceSelectionContainer}>
-                                    <div className={styles.paceHeader}>
-                                        <div className={styles.paceTitleRow}>
-                                            <span className={`material-symbols-outlined ${styles.paceHeaderIcon}`}>speed</span>
-                                            <h3 className={styles.sectionHeader}>SELECT TRAINING INTENSITY</h3>
-                                        </div>
-                                        <p className={styles.paceDescription}>
-                                            Choose an intensity pace so the System can calculate optimal work and recovery intervals.
-                                        </p>
-                                    </div>
-
-                                    <div className={styles.paceCardsRow}>
-                                        {(['STRONG', 'AVERAGE', 'WEAK'] as const).map((p) => {
-                                            const preview = calculatePacePreview(activeWorkoutItem, p);
-                                            const isSelected = selectedPace === p;
-
-                                            const config = {
-                                                STRONG: {
-                                                    label: 'STRONG',
-                                                    sub: 'Fast & Heavy',
-                                                    icon: 'local_fire_department',
-                                                    badge: 'HIGH INTENSITY',
-                                                    tierClass: styles.paceCardStrong,
-                                                },
-                                                AVERAGE: {
-                                                    label: 'AVERAGE',
-                                                    sub: 'Standard Pace',
-                                                    icon: 'fitness_center',
-                                                    badge: 'BALANCED',
-                                                    tierClass: styles.paceCardAverage,
-                                                },
-                                                WEAK: {
-                                                    label: 'WEAK',
-                                                    sub: 'Light & Steady',
-                                                    icon: 'spa',
-                                                    badge: 'RECOVERY PACE',
-                                                    tierClass: styles.paceCardWeak,
-                                                },
-                                            }[p];
-
-                                            return (
-                                                <div
-                                                    key={p}
-                                                    className={`${styles.paceCard} ${config.tierClass} ${isSelected ? styles.paceCardActive : ''}`}
-                                                    onClick={() => { playSelectConfirm(); setSelectedPace(p); }}
-                                                >
-                                                    <div className={styles.paceCardTop}>
-                                                        <div className={styles.paceIconWrapper}>
-                                                            <span className="material-symbols-outlined">{config.icon}</span>
-                                                        </div>
-                                                        <div className={styles.paceRadioIndicator}>
-                                                            {isSelected ? (
-                                                                <span className="material-symbols-outlined">check_circle</span>
-                                                            ) : (
-                                                                <span className={styles.radioDot} />
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className={styles.paceMeta}>
-                                                        <span className={styles.paceName}>{config.label}</span>
-                                                        <span className={styles.paceBadge}>{config.badge}</span>
-                                                    </div>
-
-                                                    <div className={styles.paceTimingContainer}>
-                                                        <div className={styles.timingMain}>
-                                                            <span className={styles.timingValue}>{formatSeconds(preview.secondsPerSet)}</span>
-                                                            <span className={styles.timingUnit}>/ set</span>
-                                                        </div>
-
-                                                        <div className={styles.timingDetails}>
-                                                            <div className={styles.timingRow}>
-                                                                <span className="material-symbols-outlined">timer</span>
-                                                                <span>Rest: <strong>{formatSeconds(preview.restSeconds)}</strong></span>
-                                                            </div>
-                                                            <div className={styles.timingRow}>
-                                                                <span className="material-symbols-outlined">schedule</span>
-                                                                <span>Total: <strong>{formatSeconds(preview.totalSeconds)}</strong></span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <button 
-                                        className={styles.startWorkoutBtn}
-                                        onClick={() => handleStartWorkout(activeWorkoutItem)}
-                                        disabled={isWorkoutActionLoading}
+                                <div className={styles.transitionActions}>
+                                    <button
+                                        className={styles.transitionStartBtn}
+                                        onClick={() => {
+                                            const next = transitionState.nextItem;
+                                            setTransitionState(null);
+                                            void handleOpenWorkoutModal(next, false);
+                                        }}
                                     >
-                                        {isWorkoutActionLoading ? (
-                                            <>
-                                                <span className="material-symbols-outlined animate-spin">sync</span>
-                                                <span>ACTIVATING SYSTEM...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="material-symbols-outlined">bolt</span>
-                                                <span>START TRAINING</span>
-                                            </>
-                                        )}
+                                        <span className="material-symbols-outlined">play_arrow</span>
+                                        START NEXT DIRECTIVE NOW
                                     </button>
-                                    
-                                    {timerError && <p className={styles.errorText}>{timerError}</p>}
-                                </div>
-                            ) : (
-                                <div className={styles.activeTimerContainer}>
-                                    <div className={styles.phaseIndicator}>
-                                        <span className={`${styles.phaseBadge} ${activeSession.phase === 'training' ? styles.phaseTraining : styles.phaseRest}`}>
-                                            {activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
-                                        </span>
-                                        <span className={styles.phaseText}>
-                                            SET {activeSession.currentSet} / {activeWorkoutItem.targetSets}
-                                        </span>
-                                    </div>
 
-                                    <div className={styles.circularTimerWrapper}>
-                                        <svg className={styles.timerSvg}>
-                                            <circle className={styles.timerTrack} cx="100" cy="100" r="85" />
-                                            <circle 
-                                                className={`${styles.timerIndicator} ${activeSession.phase === 'training' ? styles.timerIndicatorTraining : styles.timerIndicatorRest}`} 
-                                                cx="100" 
-                                                cy="100" 
-                                                r="85" 
-                                                strokeDasharray={2 * Math.PI * 85}
-                                                strokeDashoffset={
-                                                    2 * Math.PI * 85 * (1 - activeSession.timeLeft / (activeSession.phase === 'training' ? activeSession.secondsPerSet : activeSession.restSeconds))
-                                                }
-                                            />
-                                        </svg>
-                                        <div className={styles.timerTextContainer}>
-                                            <span className={styles.timerValue}>
-                                                {Math.floor(activeSession.timeLeft / 60)}:{(activeSession.timeLeft % 60).toString().padStart(2, '0')}
-                                            </span>
-                                            <span className={styles.timerLabel}>
-                                                {activeSession.isFinishing
-                                                    ? 'SYNCHRONIZING RESULTS'
-                                                    : activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.controlsRow}>
-                                        {activeSession.timeLeft === 0 && activeSession.accumulatedSeconds < activeSession.totalRequiredSeconds ? (
-                                            <button
-                                                className={`${styles.controlBtn} ${styles.btnPrimary}`}
-                                                disabled={activeSession.isFinishing}
-                                                onClick={() => void syncProgress(activeSession, true)}
-                                            >
-                                                <span className="material-symbols-outlined">
-                                                    {activeSession.isFinishing ? 'sync' : 'sync_problem'}
-                                                </span>
-                                                {activeSession.isFinishing ? 'SYNCHRONIZING...' : 'RETRY SYNC'}
-                                            </button>
-                                        ) : (
-                                            <button
-                                                className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
-                                                onClick={() => {
-                                                    if (activeSession.isPaused) {
-                                                        beginPreparation(activeSession, true);
-                                                    } else {
-                                                        void pauseCurrentSession();
-                                                    }
-                                                }}
-                                            >
-                                                {activeSession.isPaused ? (
-                                                    <>
-                                                        <span className="material-symbols-outlined">play_arrow</span>
-                                                        RESUME
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="material-symbols-outlined">pause</span>
-                                                        PAUSE
-                                                    </>
-                                                )}
-                                            </button>
-                                        )}
+                                    {transitionState.countdown > 0 && (
                                         <button
-                                            className={`${styles.controlBtn} ${styles.btnSecondary}`}
-                                            title="Reset exercise progress to start over"
-                                            disabled={isWorkoutActionLoading}
-                                            onClick={() => handleResetWorkout(activeWorkoutItem.id)}
-                                            style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}
+                                            className={styles.transitionRestBtn}
+                                            onClick={() => setTransitionState(prev => prev ? { ...prev, countdown: -1 } : null)}
                                         >
-                                            <span className="material-symbols-outlined">restart_alt</span>
-                                            RESET
-                                        </button>
-                                    </div>
-
-                                    {hasFinishedWorkoutTimer(activeSession, activeWorkoutItem) && activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds && (
-                                        <button 
-                                            className={styles.completeExerciseBtn}
-                                            onClick={() => handleCompleteWorkout(activeWorkoutItem.id)}
-                                            disabled={isWorkoutActionLoading}
-                                        >
-                                            <span className="material-symbols-outlined">{isWorkoutActionLoading ? 'sync' : 'verified'}</span>
-                                            {isWorkoutActionLoading ? 'RECORDING...' : 'COMPLETE EXERCISE & CLAIM REWARD'}
+                                            <span className="material-symbols-outlined">pause</span>
+                                            REST LONGER
                                         </button>
                                     )}
 
-                                    {timerError && <p className={styles.errorText}>{timerError}</p>}
+                                    <button
+                                        className={styles.transitionCloseBtn}
+                                        onClick={handleCloseWorkoutModal}
+                                    >
+                                        EXIT TO DASHBOARD
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : activeWorkoutItem && (
+                            <>
+                                {/* PREPARATION STEP OVERLAY */}
+                                {preparationStep !== null && (
+                                    <div 
+                                        className={styles.prepOverlay}
+                                        onClick={handleSkipPreparation}
+                                        title="Tap anywhere to skip countdown"
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <div className={styles.prepContent}>
+                                            <span className={styles.prepLabel}>GET READY</span>
+                                            <span className={`${styles.prepValue} ${preparationStep === 'go' ? styles.prepGo : ''}`}>
+                                                {preparationStep === 'go' ? 'GO!' : preparationStep}
+                                            </span>
+                                            <span className={styles.prepSkipHint}>Tap anywhere to skip</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className={styles.exerciseDetailHeader}>
+                                    <span className={styles.categoryBadge}>{activeWorkoutItem.category}</span>
+                                    <h2 className={styles.detailTitle}>{activeWorkoutItem.exerciseName}</h2>
+                                    <p className={styles.detailTarget}>
+                                        Target: <span className={styles.neonBlue}>{formatQuestTarget(activeWorkoutItem)}</span>
+                                    </p>
+                                </div>
+
+                                <div className={styles.detailBody}>
+                                    {!activeSession ? (
+                                        <div className={styles.paceSelectionContainer}>
+                                            <div className={styles.paceHeader}>
+                                                <div className={styles.paceTitleRow}>
+                                                    <span className={`material-symbols-outlined ${styles.paceHeaderIcon}`}>speed</span>
+                                                    <h3 className={styles.sectionHeader}>SELECT TRAINING INTENSITY</h3>
+                                                </div>
+                                                <p className={styles.paceDescription}>
+                                                    Choose an intensity pace so the System can calculate optimal work and recovery intervals.
+                                                </p>
+                                            </div>
+
+                                            <div className={styles.paceCardsRow}>
+                                                {(['STRONG', 'AVERAGE', 'WEAK'] as const).map((p) => {
+                                                    const preview = calculatePacePreview(activeWorkoutItem, p);
+                                                    const isSelected = selectedPace === p;
+
+                                                    const config = {
+                                                        STRONG: {
+                                                            label: 'STRONG',
+                                                            sub: 'Fast & Heavy',
+                                                            icon: 'local_fire_department',
+                                                            badge: 'HIGH INTENSITY',
+                                                            tierClass: styles.paceCardStrong,
+                                                        },
+                                                        AVERAGE: {
+                                                            label: 'AVERAGE',
+                                                            sub: 'Standard Pace',
+                                                            icon: 'fitness_center',
+                                                            badge: 'BALANCED',
+                                                            tierClass: styles.paceCardAverage,
+                                                        },
+                                                        WEAK: {
+                                                            label: 'WEAK',
+                                                            sub: 'Light & Steady',
+                                                            icon: 'spa',
+                                                            badge: 'RECOVERY PACE',
+                                                            tierClass: styles.paceCardWeak,
+                                                        },
+                                                    }[p];
+
+                                                    return (
+                                                        <div
+                                                            key={p}
+                                                            className={`${styles.paceCard} ${config.tierClass} ${isSelected ? styles.paceCardActive : ''}`}
+                                                            onClick={() => { playSelectConfirm(); setSelectedPace(p); }}
+                                                        >
+                                                            <div className={styles.paceCardTop}>
+                                                                <div className={styles.paceIconWrapper}>
+                                                                    <span className="material-symbols-outlined">{config.icon}</span>
+                                                                </div>
+                                                                <div className={styles.paceRadioIndicator}>
+                                                                    {isSelected ? (
+                                                                        <span className="material-symbols-outlined">check_circle</span>
+                                                                    ) : (
+                                                                        <span className={styles.radioDot} />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className={styles.paceMeta}>
+                                                                <span className={styles.paceName}>{config.label}</span>
+                                                                <span className={styles.paceBadge}>{config.badge}</span>
+                                                            </div>
+
+                                                            <div className={styles.paceTimingContainer}>
+                                                                <div className={styles.timingMain}>
+                                                                    <span className={styles.timingValue}>{formatSeconds(preview.secondsPerSet)}</span>
+                                                                    <span className={styles.timingUnit}>/ set</span>
+                                                                </div>
+
+                                                                <div className={styles.timingDetails}>
+                                                                    <div className={styles.timingRow}>
+                                                                        <span className="material-symbols-outlined">timer</span>
+                                                                        <span>Rest: <strong>{formatSeconds(preview.restSeconds)}</strong></span>
+                                                                    </div>
+                                                                    <div className={styles.timingRow}>
+                                                                        <span className="material-symbols-outlined">schedule</span>
+                                                                        <span>Total: <strong>{formatSeconds(preview.totalSeconds)}</strong></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <button 
+                                                className={styles.startWorkoutBtn}
+                                                onClick={() => handleStartWorkout(activeWorkoutItem)}
+                                                disabled={isWorkoutActionLoading}
+                                            >
+                                                {isWorkoutActionLoading ? (
+                                                    <>
+                                                        <span className="material-symbols-outlined animate-spin">sync</span>
+                                                        <span>ACTIVATING SYSTEM...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="material-symbols-outlined">bolt</span>
+                                                        <span>START TRAINING</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                            
+                                            {timerError && <p className={styles.errorText}>{timerError}</p>}
+                                        </div>
+                                    ) : (
+                                        <div className={styles.activeTimerContainer}>
+                                            <div className={styles.phaseIndicator}>
+                                                <span className={`${styles.phaseBadge} ${activeSession.phase === 'training' ? styles.phaseTraining : styles.phaseRest}`}>
+                                                    {activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
+                                                </span>
+                                                <span className={styles.phaseText}>
+                                                    SET {activeSession.currentSet} / {activeWorkoutItem.targetSets}
+                                                </span>
+                                            </div>
+
+                                            <div className={`${styles.circularTimerWrapper} ${!activeSession.isPaused ? styles.circularTimerActive : ''}`}>
+                                                <svg className={styles.timerSvg}>
+                                                    <circle className={styles.timerTrack} cx="100" cy="100" r="85" />
+                                                    <circle 
+                                                        className={`${styles.timerIndicator} ${activeSession.phase === 'training' ? styles.timerIndicatorTraining : styles.timerIndicatorRest}`} 
+                                                        cx="100" 
+                                                        cy="100" 
+                                                        r="85" 
+                                                        strokeDasharray={2 * Math.PI * 85}
+                                                        strokeDashoffset={
+                                                            2 * Math.PI * 85 * (1 - activeSession.timeLeft / (activeSession.phase === 'training' ? activeSession.secondsPerSet : activeSession.restSeconds))
+                                                        }
+                                                    />
+                                                </svg>
+                                                <div className={styles.timerTextContainer}>
+                                                    <span className={styles.timerValue}>
+                                                        {Math.floor(activeSession.timeLeft / 60)}
+                                                        <span className={!activeSession.isPaused ? styles.timerColonRunning : ''}>:</span>
+                                                        {(activeSession.timeLeft % 60).toString().padStart(2, '0')}
+                                                    </span>
+                                                    <span className={styles.timerLabel}>
+                                                        {activeSession.isFinishing
+                                                            ? 'SYNCHRONIZING RESULTS'
+                                                            : activeSession.phase === 'training' ? 'TRAINING' : 'RESTING'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className={styles.controlsRow}>
+                                                {activeSession.timeLeft === 0 && activeSession.accumulatedSeconds < activeSession.totalRequiredSeconds ? (
+                                                    <div className={styles.finalSyncBanner}>
+                                                        <span className={`material-symbols-outlined ${styles.spin}`}>sync</span>
+                                                        <span>SYNCHRONIZING RESULTS WITH SYSTEM...</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            className={`${styles.controlBtn} ${activeSession.isPaused ? styles.btnPrimary : styles.btnSecondary}`}
+                                                            onClick={() => {
+                                                                if (activeSession.isPaused) {
+                                                                    beginPreparation(activeSession, true);
+                                                                } else {
+                                                                    void pauseCurrentSession();
+                                                                }
+                                                            }}
+                                                        >
+                                                            {activeSession.isPaused ? (
+                                                                <>
+                                                                    <span className="material-symbols-outlined">play_arrow</span>
+                                                                    RESUME
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <span className="material-symbols-outlined">pause</span>
+                                                                    PAUSE
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            className={`${styles.controlBtn} ${styles.btnSecondary}`}
+                                                            title="Reset exercise progress to start over"
+                                                            disabled={isWorkoutActionLoading}
+                                                            onClick={() => handleResetWorkout(activeWorkoutItem.id)}
+                                                            style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}
+                                                        >
+                                                            <span className="material-symbols-outlined">restart_alt</span>
+                                                            RESET
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {autoCompletingId ? (
+                                                <div className={styles.autoCompletingBox}>
+                                                    <span className={`material-symbols-outlined ${styles.spin}`}>sync</span>
+                                                    <span>SYNCHRONIZING COMPLETION & CLAIMING REWARD...</span>
+                                                </div>
+                                            ) : hasFinishedWorkoutTimer(activeSession, activeWorkoutItem) && activeSession.accumulatedSeconds >= activeSession.totalRequiredSeconds ? (
+                                                <button 
+                                                    className={styles.completeExerciseBtn}
+                                                    onClick={() => handleCompleteWorkout(activeWorkoutItem.id, isRoutineMode)}
+                                                    disabled={isWorkoutActionLoading}
+                                                >
+                                                    <span className="material-symbols-outlined">{isWorkoutActionLoading ? 'sync' : 'verified'}</span>
+                                                    {isWorkoutActionLoading ? 'RECORDING...' : 'COMPLETE EXERCISE & CLAIM REWARD'}
+                                                </button>
+                                            ) : null}
+
+                                            {timerError && <p className={styles.errorText}>{timerError}</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -1461,7 +1734,20 @@ export default function DailyQuest() {
                                 <h1 className={styles.questTitle}>Daily Quest</h1>
                                 <p className={styles.questSubtitle}>Preparation to Become Strong</p>
                             </div>
-                            <span className={`material-symbols-outlined ${styles.headerIcon}`}>fitness_center</span>
+                            <div className={styles.headerRightGroup}>
+                                {questData && !questData.completed && mainQuestItems.some(item => !item.completed) && (
+                                    <button 
+                                        className={styles.startRoutineHeaderBtn}
+                                        onClick={handleStartRoutine}
+                                        disabled={isWorkoutActionLoading}
+                                        title="Start continuous workout through all incomplete exercises"
+                                    >
+                                        <span className="material-symbols-outlined">play_circle</span>
+                                        <span>START ROUTINE ({mainQuestItems.filter(i => !i.completed).length} LEFT)</span>
+                                    </button>
+                                )}
+                                <span className={`material-symbols-outlined ${styles.headerIcon}`}>fitness_center</span>
+                            </div>
                         </div>
 
                         {/* Exercise Items List or Empty State */}
@@ -1499,6 +1785,29 @@ export default function DailyQuest() {
                             </div>
                         ) : (
                             <div className={styles.questGroups}>
+                                <div className={styles.paceGlobalSelector}>
+                                    <div className={styles.paceSelectorLeft}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary)' }}>speed</span>
+                                        <span className={styles.paceSelectorLabel}>DEFAULT INTENSITY:</span>
+                                    </div>
+                                    <div className={styles.pacePills}>
+                                        {(['STRONG', 'AVERAGE', 'WEAK'] as const).map(p => (
+                                            <button
+                                                key={p}
+                                                className={`${styles.pacePill} ${preferredPace === p ? styles.pacePillActive : ''}`}
+                                                onClick={() => {
+                                                    playSelectConfirm();
+                                                    localStorage.setItem('shadow_quest_preferred_pace', p);
+                                                    setPreferredPace(p);
+                                                    setSelectedPace(p);
+                                                }}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {[
                                     { key: 'main', title: 'Main Missions', subtitle: 'Complete these to clear today’s quest', items: mainQuestItems, bonus: false },
                                     { key: 'bonus', title: 'Bonus Challenges', subtitle: `${completedBonusCount}/${bonusQuestItems.length} complete · Optional`, items: bonusQuestItems, bonus: true },
@@ -1556,19 +1865,31 @@ export default function DailyQuest() {
                                                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>info</span>
                                                 </button>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 {item.completed ? (
                                                     <span className={styles.exerciseActionButtonDone}>
                                                         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>verified</span>
                                                         DONE
                                                     </span>
                                                 ) : (
-                                                    <button 
-                                                        className={inProgress ? styles.exerciseResumeButton : styles.exerciseActionButton}
-                                                        onClick={() => handleOpenWorkoutModal(item)}
-                                                    >
-                                                        {inProgress ? 'Resume' : 'Train'}
-                                                    </button>
+                                                    <>
+                                                        <button 
+                                                            className={inProgress ? styles.exerciseResumeButton : styles.exerciseActionButton}
+                                                            onClick={() => handleOpenWorkoutModal(item, false)}
+                                                            title={inProgress ? "Resume training session" : `Quick Train at ${preferredPace} pace`}
+                                                        >
+                                                            {inProgress ? 'Resume' : 'Train'}
+                                                        </button>
+                                                        {!inProgress && (
+                                                            <button
+                                                                className={styles.exercisePaceConfigBtn}
+                                                                onClick={() => handleOpenWorkoutModal(item, true)}
+                                                                title="Configure pace & preview before training"
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>tune</span>
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>

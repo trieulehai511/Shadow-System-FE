@@ -2186,7 +2186,9 @@
     justify-content: center;
     align-items: center;
     border-radius: 12px;
-    animation: fadeIn 0.2s ease-in-out;
+    animation: fadeIn 0.15s ease-in-out;
+    cursor: pointer;
+    user-select: none;
 }
 
 .prepContent {
@@ -2195,6 +2197,36 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
+    pointer-events: none;
+}
+
+.circularTimerActive {
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.4));
+    animation: activeTimerPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes activeTimerPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+        filter: drop-shadow(0 0 24px rgba(56, 189, 248, 0.6));
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.timerColonRunning {
+    animation: blinkColon 1s infinite steps(1, start);
+    display: inline-block;
+    color: var(--color-primary);
+}
+
+@keyframes blinkColon {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 .prepLabel {
@@ -2229,6 +2261,15 @@
     margin-top: 2px;
 }
 
+.prepSkipHint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
 @keyframes prepPop {
     0% {
         transform: scale(0.5);
@@ -2239,3 +2280,347 @@
         opacity: 1;
     }
 }
+
+/* Quick pace selector */
+.paceGlobalSelector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: rgba(24, 24, 27, 0.4);
+    border: 1px solid var(--color-outline-variant);
+    padding: 10px 16px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.paceSelectorLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.paceSelectorLabel {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-on-surface-variant);
+    letter-spacing: 0.08em;
+}
+
+.pacePills {
+    display: flex;
+    gap: 6px;
+}
+
+.pacePill {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    border: 1px solid var(--color-outline-variant);
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pacePill:hover {
+    border-color: var(--color-primary);
+    color: var(--color-on-surface);
+}
+
+.pacePillActive {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+/* Start routine header button */
+.headerRightGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.startRoutineHeaderBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    border: none;
+    color: #041421;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.startRoutineHeaderBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+    background: linear-gradient(135deg, #7dd3fc 0%, #0369a1 100%);
+}
+
+.startRoutineHeaderBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.exercisePaceConfigBtn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 6px;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exercisePaceConfigBtn:hover {
+    border-color: var(--color-on-surface);
+    color: var(--color-on-surface);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Transition between exercises view */
+.transitionContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0;
+    gap: 16px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.transitionCheckIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.1);
+    border: 2px solid #22c55e;
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
+}
+
+.transitionCheckIcon .material-symbols-outlined {
+    font-size: 38px;
+}
+
+.transitionBadge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: #22c55e;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.transitionTitle {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--color-on-surface);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.transitionSubtitle {
+    font-size: 13px;
+    color: var(--color-on-surface-variant);
+    margin: 0;
+}
+
+.nextCard {
+    width: 100%;
+    background: rgba(24, 24, 27, 0.7);
+    border: 1.5px solid rgba(56, 189, 248, 0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: left;
+    margin: 8px 0;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.08);
+}
+
+.nextCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.nextTag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: 0.1em;
+}
+
+.nextCategory {
+    font-size: 10px;
+    background: var(--color-surface-container-highest);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+}
+
+.nextExerciseName {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+    margin: 0 0 4px 0;
+}
+
+.nextTarget {
+    font-size: 13px;
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.transitionCountdownRow {
+    margin: 4px 0;
+}
+
+.transitionCountdownText {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--color-on-surface-variant);
+}
+
+.transitionActions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.transitionStartBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    border: none;
+    color: #041421;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    transition: all 0.2s ease;
+}
+
+.transitionStartBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+}
+
+.transitionRestBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: var(--color-surface-container-highest);
+    border: 1px solid var(--color-outline-variant);
+    color: var(--color-on-surface);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.transitionRestBtn:hover {
+    border-color: var(--color-on-surface);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.transitionCloseBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.2s;
+}
+
+.transitionCloseBtn:hover {
+    color: #ef4444;
+}
+
+.autoCompletingBox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1.5px solid #22c55e;
+    color: #22c55e;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+.finalSyncBanner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1.5px solid rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+}
+
